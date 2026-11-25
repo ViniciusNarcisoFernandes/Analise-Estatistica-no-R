@@ -1,0 +1,147 @@
+---
+title: "Banco de dados e Introdução ao R"
+author: "Vinícius Narciso Fernandes"
+date: "08/08/2026"
+output: pdf_document
+---
+
+# <span style="color:green;"> Atividade 06 Agosto</span>
+
+Realizou-se um levantamento dos pacientes internados em um hospital municipal por meio de um questionário. As informações coletadas estão descritas a seguir:
+  
+  **1-** Cidade de origem
+  
+  **2-** Número de consultas
+  
+  **3-** Idade, em anos
+  
+  **4-** Peso, em quilos
+  
+  **5-** Sexo
+  
+  **6-** Tabagismo
+  
+  **7-** Realiza atividade física?
+  
+  **8-** Número de dias que realiza atividade física numa semana
+
+A partir destas informações, responda às perguntas a seguir:
+
+**a)** Classifique cada uma das variáveis do estudo.
+
+**Resposta.**
+
+```{r}
+
+  cat("#------------------------------------------#\n",
+      "#  Classificação com relação as variáveis  #\n",
+      "#------------------------------------------#\n",
+      "1 - Cidade de origem - Qualitativa Nominal\n",
+      "2 - Número de consultas - Quantitativa Discreta\n",
+      "3 - Idade, em anos - Quantitativa Discreta\n", 
+      "4 - Peso, em quilos - Quantitativa Contínua \n", 
+      "5 - Sexo - Qualitativa Nominal \n", 
+      "6 - Tabagismo - Qualitativa Nominal \n", 
+      "7 - Realiza atividade física? - Qualitativa Nominal \n", 
+      "8 - Número de dias que realiza atividade física numa semana - Quantitativa Discreta " 
+    )
+```
+**b)** Importe o banco de dados para o R.
+
+```{r}
+# Biblioteca para a importação dos dados
+library(readxl)
+
+# Importandos os dados e aplicando a um objeto "dados"
+dados <- read_excel("~/Documentos/Disciplinas/Análise no R/Aula 1 /Dados_atividade.xlsx")
+head(dados)
+```
+
+
+**c)** Quantos pacientes foram entrevistados para cada cidade?
+```{r}
+cat("Quantidade de pacientes entrevistados em cada cidade:\n")
+table(dados$`Cidade de origem`)
+```
+
+**d)** Qual é o número mínimo, médio e máximo de consultas por paciente?
+
+```{r}
+
+# Verificando a estatística descritiva 
+cat("#-------------------------------------------#\n",
+    "Análise Descritiva para `Número de Consultas`\n",
+    "#-------------------------------------------#\n",
+    "Número mínimo =", min(dados$`Número de consultas`),"\n",
+    "Média amostral = ",round(mean(dados$`Número de consultas`),3),"\n",
+    "Número máximo = ", max(dados$`Número de consultas`)
+    )
+
+
+```
+
+**e)** Qual é o mínimo, máximo, média e desvio-padrão da idade e do peso dos pacientes?
+
+```{r}
+
+# Verificando a estatística descritiva 
+cat(
+  "#------------------------------------#\n",
+  "        ANÁLISE DESCRITIVA\n",
+  "#------------------------------------#\n",
+  "IDADE\n",
+  "-------------------------------------\n",
+  "Mínimo          =", min(dados$`Idade (em anos)`), "\n",
+  "Máximo          =", max(dados$`Idade (em anos)`), "\n",
+  "Média           =", round(mean(dados$`Idade (em anos)`), 2), "\n",
+  "Desvio-padrão   =", round(sd(dados$`Idade (em anos)`), 2), "\n\n",
+  "-------------------------------\n",
+  "PESO DOS PACIENTES\n",
+  "-------------------------------\n",
+  "Mínimo          =", min(dados$`Peso (em quilos)`), "\n",
+  "Máximo          =", max(dados$`Peso (em quilos)`), "\n",
+  "Média           =", round(mean(dados$`Peso (em quilos)`), 2), "\n",
+  "Desvio-padrão   =", round(sd(dados$`Peso (em quilos)`), 2), "\n"
+)
+
+
+```
+
+
+**f)** Apresente a porcentagem de pacientes por nível de tabagismo e atividade física.
+
+```{r}
+cat("Proporção de indivíduos por nível de tabagismo:\n")
+round(prop.table(table(dados$`Tabagismo`))*100,1)
+
+cat("\nProporção de indivíduos que realizam atividade física:\n")
+round(prop.table(table(dados$`Realiza atividade física`))*100,1)
+```
+
+
+**g)** Construa uma tabela de contingência entre sexo e atividade física e calcule a porcentagem por sexo com o objetivo de comparar a frequência de atividade física entre os sexos.
+
+```{r}
+cat("Tabela de contingência entre sexo e atividade física")
+dados2 <- table(dados$`Sexo`,dados$`Realiza atividade física`)
+round(prop.table(dados2,margin=1) * 100, 1)
+```
+
+A tabela de contingência mostra a porcentagem de pessoas, do sexo feminino e masculino, que realizam atividade física. É possível obsevar que o número de mulheres que não realizam atividade física é $51.5\%$ enquanto que de homens é $41.5\%$. Logo, a tabela indica que as mulheres são menos adeptas a atividade fisíca quando comparada aos homens.   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
