@@ -1,0 +1,183 @@
+---
+title: "Atividade III"
+author: "Vinícius Narciso Fernandes"
+date: "`24/08/2026`"
+output: pdf_document
+---
+
+**1.** Em tanques de um pesqueiro, a probabilidade de cada alevino estar com tamanho ideal de comercialização é igual
+a 0.70. Ao selecionarmos 20 alevinos ao acaso, qual é a probabilidade de observarmos
+
+
+**a.** no máximo 12 em condições de venda?
+
+$$
+P(X \leq 12)
+$$
+
+```{r}
+sum(dbinom(0:12,size=20,prob = 0.7))
+```
+  
+**b.** entre 13 e 17 em condições de venda?
+
+$$
+P(13 \leq X \leq 17)
+$$
+
+```{r}
+sum(dbinom(13:17,size=20,prob = 0.7))
+```
+
+**c.** pelo menos 16 em condições de venda?
+
+$$
+P(X \geq 16)
+$$
+
+```{r}
+sum(dbinom(16:20,size=20,prob = 0.7))
+```
+
+**2.** Considere que o número de casos de acidentes envolvendo escorpiões segue uma distribuição Poisson com
+média de 6 por mês em uma cidade. Calcule a probabilidade, de termos, em um mês
+
+**a.** 7 acidentes?
+$$
+P(X = 7)
+$$
+
+```{r}
+dpois(x = 7, lambda = 6)
+```
+
+**b.** pelo menos 4 acidentes?
+
+$$
+P(X \geq 4) = 1 - P(X < 4)
+$$
+
+```{r}
+1 - sum(dpois(x = 0:3, lambda = 6))
+```
+  
+**c.** No máximo 10 acidentes?
+
+$$
+P(X \leq 10)
+$$
+
+```{r}
+sum(dpois(x = 0:10, lambda = 6))
+```
+
+**3.** Suponha que os estágios de câncer no pulmão seguem uma distribuição Multinomial em que $p_1 =0.15$, $p_2 =0.25$,
+$p_3 =0.25$, $p_4 =0.35$, em que $p_i$ representa a probabilidade de selecionar um paciente com câncer no estágio i. Ao
+selecionar 20 pacientes em um grande instituto para tratamento oncológico, qual é a probabilidade de observarmos
+
+**a.** 3, 5, 5 nos estágios 1 a 3 e os demais no estágio 4?
+```{r}
+dmultinom(c(3,5,5,7), prob = c(0.15,0.25,0.25,0.35))
+```
+
+  
+**b.** 5, 4, 3 nos estágios 1 a 3 e os demais no estágio 4?
+```{r}
+dmultinom(c(5,4,3,8), prob = c(0.15,0.25,0.25,0.35))
+```
+
+**4.** Suponha que o ganho de peso de uma gestante segue uma distribuição Normal com média e desvio-padrão iguais
+a 13 e 5 quilos. Qual é a probabilidade de uma gestante, selecionada ao acaso, ter um ganho de peso
+
+$$
+X \sim N(13,5^{2})
+$$
+
+**a.** menor do que 12 quilos?
+
+$$
+P(X < 12)
+$$
+
+```{r}
+pnorm(12,mean = 13,sd = 5)
+```
+
+  
+**b.** maior do que 18 quilos?
+
+$$
+P(X > 18)
+$$
+
+
+```{r}
+1 - pnorm(18,mean = 13,sd = 5)
+```
+
+  
+**c.** entre 13 e 17 quilos?
+
+$$
+P(13 < X < 17)
+$$
+
+```{r}
+pnorm(17,mean = 13,sd = 5) - pnorm(13,mean = 13,sd = 5)
+```
+
+  
+**d.** qual é o limite do ganho de peso esperado em 15% dos menores ganhos?
+
+$$
+P(X \leq x) = 0.15
+$$
+
+```{r}
+qnorm(0.15, mean = 13 ,sd = 5)
+```
+
+  
+**e.** qual é o limite do ganho de peso esperado em 5% dos maiores ganhos?
+
+$$
+P(X \leq x) = 0.95
+$$
+
+```{r}
+qnorm(0.95, mean = 13 ,sd = 5)
+```
+
+**5.** Calcule os limites dos 2.5% e dos 5% maiores valores das distribuições abaixo.
+
+$$
+P(X > x) = 0.05 \Rightarrow P(X \leq x) = 0.95 
+$$ 
+e
+$$
+P(X > x) = 0.025 \Rightarrow P(X \leq x) = 0.975 
+$$
+
+
+**a.** Qui-Quadrado com 10 graus de liberdade.
+```{r}
+qchisq(0.95, df = 10) # 5% maiores valores
+qchisq(0.975, df = 10) # 2,5% maiores valores
+```
+
+  
+**b.** t de Student com 15 graus de liberdade.
+```{r}
+qt(0.95, df = 15)   # 5% maiores valores
+qt(0.975, df = 15)  # 2,5% maiores valores
+```
+
+  
+**c.** F com 10 e 12 graus de liberdade no numerador e denominador, respectivamente.
+```{r}
+qf(0.95, df1 = 10, df2 = 12)   # 5% maiores valores
+qf(0.975, df1 = 10, df2 = 12)  # 2,5% maiores valores
+```
+
+
+
