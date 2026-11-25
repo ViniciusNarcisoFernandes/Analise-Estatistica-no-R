@@ -1,0 +1,159 @@
+---
+title: "Atividade V"
+author: "Vinícius Narciso Fernandes"
+date: "`04/07/2026`"
+output: pdf_document
+---
+**1.** Uma pesquisa deseja avaliar a eficiência de um medicamento D em desenvolvimento para pacientes com problemas cardíacos. Para realizar esta pesquisa, realizou-se uma amostra piloto com os níveis de colesterol (lipoproteínas de alta densidade, HDL) de alguns pacientes que receberam este medicamento por um determinado período: $81.6; 146.6; 118.9; 126.9; 109.8$ mg/dL. Calcule o tamanho da amostra necessário para verificar se o nível de colesterol médio é menor do que $130$ mg/dl? Utilize um nível de
+significância de $0.05$ e poder do teste de $80\%$.
+
+```{r}
+library(pwr)
+dados1 <- c(81.6, 146.6, 118.9, 126.9, 109.8)
+media  <- mean(dados1)
+dpa    <- sd(dados1)
+efeito <- (media-130)/dpa
+pwr.t.test(d=efeito, 
+           power = 0.80, 
+           sig.level = 0.05,
+           type="one.sample",
+           alternative="less")
+```
+**Conclusão:** Considerando o tamanho de efeito estimado a partir da amostra piloto, são necessários pelo menos \(22\) pacientes para verificar se o nível médio de colesterol HDL dos pacientes que receberam o medicamento D é inferior a \(130\) mg/dL, utilizando nível de significância de \(5\%\) e poder estatístico de \(80\%\).
+
+
+**2.** Considerando a pesquisa do exercício anterior, os níveis de colesterol de pacientes submetidos ao medicamento D foram avaliados e estão descritos abaixo.
+
+**a.** Verifique a suposição de normalidade da variável do estudo (utilize pelo menos dois testes).
+```{r}
+dados2 <- data.frame(
+  colesterol = c(
+    81.6, 146.6, 118.9, 126.9, 109.8, 138.2, 102.2, 120.8, 134.0,
+    128.6, 117.5, 110.5, 150.4, 114.1, 108.3, 90.6, 123.9,
+    114.3, 93.9, 128.1, 121.7, 108.0, 102.0, 113.0, 111.2,
+    123.3, 129.3, 135.6, 118.2, 136.7
+  )
+)
+
+# Usando attach
+attach(dados2)
+
+# Verificando a distribuição dos dados 
+hist(colesterol,
+     main = "Níveis de colesterol por pacientes",
+     xlab = "HDL (mg/dl)",
+     ylab = "Densidade",
+     col = "darkorange",
+     border = "black",
+     probability = TRUE) 
+
+```
+
+
+```{r}
+library(nortest)
+# Teste de Shapiro-Wilk
+shapiro.test(colesterol)
+
+# Teste de Anderson-Darling
+ad.test(colesterol)
+```
+**Conclusão:** Ao nível de significância de 5%, o teste de Shapiro–Wilk não apresentou evidências para rejeitar a hipótese nula de normalidade (p > 0,05). O segundo teste de normalidade também não apresentou evidências contra a suposição de normalidade. Portanto, os resultados indicam que a distribuição dos níveis de colesterol HDL é compatível com uma distribuição Normal.
+
+
+**b.** O nível médio de colesterol HDL destes pacientes é menor do que $130$mg/dl? Utilize um nível de significância de $0.05$.
+```{r}
+t.test(colesterol, 
+       mu = 130,
+       alternative = "less",
+       conf.level=0.95)
+
+```
+**Conclusão:** Ao nível de significância de 5%, rejeitamos a hipótese nula, pois o p-valor obtido foi inferior a 0,05. Portanto, há evidências estatísticas de que o nível médio de colesterol HDL dos pacientes submetidos ao medicamento D é inferior a 130 mg/dL.
+
+**c.** Obtenha o intervalo de confiança de 95% para o nível de colesterol médio destes pacientes
+```{r}
+media  <- mean(colesterol)
+desvio <- sd(colesterol)
+n      <- length(colesterol)
+
+erro <- desvio / sqrt(n)
+
+infe <- media - qt(0.975, df = n - 1) * erro
+supe <- media + qt(0.975, df = n - 1) * erro
+
+
+cat(
+    "-----------------------------------------------------\n",
+    "               Intervalo de Confiança        \n",
+    "-----------------------------------------------------\n",
+    "Media amostral = ", media ,"\n",
+    "Desvio-padrão amostral = ", desvio ,"\n",
+    "Tamanho amostral = ", n ,"\n",
+    "Erro-Padrão = ", erro, "\n",
+    "Intervalo de Confiança de 95% = [",round(infe, 3), ",", round(supe, 3), "]\n",
+    "-----------------------------------------------------"
+    )
+```
+
+**Conclusão:** Com 95% de confiança, estima-se que o nível médio de colesterol HDL dos pacientes submetidos ao medicamento D esteja entre 112,696 mg/dL e 124,518 mg/dL.
+
+
+**3.** A secretaria municipal afirmou que no máximo 10% das residências possuem criadouros de dengue. Um levantamento foi realizado e foram encontrados criadouros de dengue em $42$ de $596$ residências visitadas.
+
+**a.** Com nível de significância de $0.05$, verifique a veracidade da afirmação.
+```{r}
+# Dados
+n <- 596
+x <- 42
+
+# Teste de hipótese para uma proporção
+prop.test(x,n,
+          p = 0.10,
+          alternative = "greater",
+          correct = FALSE)
+```
+
+**Conclusão:** Ao nível de significância de 5%, não rejeitamos a hipótese nula, pois o p-valor obtido é superior a 0,05. Portanto, não há evidências estatísticas de que a proporção de residências com criadouros de dengue seja superior a 10%. Assim, os dados são compatíveis com a afirmação da secretaria municipal de que, no máximo, 10% das residências possuem criadouros de dengue.
+
+
+**b.** Calcule o intervalo de confiança de $95\%$ para a proporção de residência com criadouro de dengue.
+```{r}
+p <- x/n
+
+erro <- qnorm(0.975) * sqrt(p*(1-p)/n)
+
+LI <- p - erro
+LS <- p + erro
+
+cat("-------------------------------------------------\n",
+    "                     Resultado                   \n",                
+    "-------------------------------------------------\n",
+    "Proporção estimada =", round(p * 100, 2), "%\n",
+    "Erro-Padrão = ", erro, "\n",
+    "Intervalo de Confiança de 95% = [",round(LI, 4)*100, ",", round(LS, 4)*100, "]\n",
+     "-------------------------------------------------"
+    )
+```
+
+**Conclusão:** Com 95% de confiança, estima-se que a proporção verdadeira de residências com criadouros de dengue esteja entre aproximadamente 4,99% e 9,10%. A proporção observada na amostra foi de aproximadamente 7,05%.
+
+
+**c.** Quantas residência devem ser avaliadas num próximo levantamento, considerando o nível de significância de $0.05$ e poder de 80% com objetivo de avaliar a afirmação da secretaria municipal?
+```{r}
+p0 <- 0.10
+p1 <- x/n
+
+alfa <- 0.05
+poder <- 0.80
+
+za <- qnorm(1 - alfa)
+zb <- qnorm(poder)
+
+n_novo <- ((za*sqrt(p0*(1-p0)) +
+            zb*sqrt(p1*(1-p1)))^2)/(p0-p1)^2
+
+ceiling(n_novo)
+```
+
+**Conclusão:** Considerando como proporção alternativa a estimativa obtida no levantamento atual, aproximadamente 7,05%, são necessárias pelo menos 577 residências em um próximo levantamento para avaliar a afirmação da secretaria municipal, utilizando nível de significância de 5% e poder estatístico de 80%.

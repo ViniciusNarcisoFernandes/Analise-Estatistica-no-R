@@ -1,0 +1,443 @@
+---
+title: "Atividade VI"
+author: "Vinícius Narciso Fernandes"
+date: "`11/09/2026`"
+output: pdf_document
+---
+
+**1.** Um estudo avaliou o efeito de dois medicamentos num grupo de pacientes com problemas cardíacos. Os pacientes foram aleatoriamente selecionados para receber um dos medicamentos. A idade e os níveis de colesterol (lipoproteínas de alta densidade, HDL) estão disponíveis no arquivo 06_dadosR na planilha Atividade.
+
+**a.** Verifique a suposição de normalidade da idade e dos níveis de colesterol destes pacientes.
+
+```{r}
+library(readxl)
+library(knitr)
+library(dplyr)
+```
+
+Os dados a serem analisados 
+```{r}
+
+dados1 <- read_excel("~/Documentos/Disciplinas/Análise no R/Aula 6/06_dadosR.xlsx", 
+                     sheet = "Atividade_Ex1")
+par(mfrow=c(1,2))
+
+# Boxplot para os grupos M1 e M2 com relação as idades
+boxplot(dados1$Idade~dados1$Grupo,
+        main   = "Boxplot da idade",
+        xlab   = "", 
+        ylab   = "Idade", 
+        col    = "darkblue", 
+        border = "black")
+
+# Boxplot para os grupos M1 e M2 com relação ao nível de colesterol
+boxplot(dados1$Colesterol~dados1$Grupo,
+        main   = "Boxplot do HDL",
+        xlab   = "", 
+        ylab   = "HDL", 
+        col    = "darkgreen",
+        border = "black")
+
+```
+Para as hipóteses relacionados a normalidade de Shapiro-Wilk temos;
+$$
+\begin{cases}
+H_0: \text{os dados seguem distribuição normal}, \\
+H_1: \text{os dados não seguem distribuição normal}.
+\end{cases}
+$$
+
+Suposição de normalidade - Teste de Shapiro-Wilk
+```{r}
+
+# Teste de Shapiro-Wilk para idade 
+shapiro_idade <- dados1 %>%
+  group_by(Grupo) %>%
+  summarise(
+    W = shapiro.test(Idade)$statistic,
+    p_valor = shapiro.test(Idade)$p.value
+  ) %>%
+  mutate(Variavel = "Idade")
+
+# Teste de Shapiro-Wilk para nível de colesterol
+shapiro_colesterol <- dados1%>%
+  group_by(Grupo) %>%
+  summarise(
+    W = shapiro.test(Colesterol)$statistic,
+    p_valor = shapiro.test(Colesterol)$p.value
+  ) %>%
+  mutate(Variavel = "Colesterol")
+
+# Juntando os bancos de dados
+res <- bind_rows(shapiro_idade,shapiro_colesterol)%>%
+  mutate(
+    Conclusao = ifelse(
+      p_valor > 0.05,
+      "Não rejeita normalidade",
+      "Rejeita normalidade"
+    )
+  ) %>%
+  select(Variavel,Grupo,W,p_valor, Conclusao)
+
+# Sumarizando os resultados numa tabela 
+kable(res,
+      digits=4,
+      col.names = c(
+        "Variável",
+        "Grupo",
+        "W",
+        "p-valor",
+        "Conclusão"
+      ),
+      caption = "Teste de normalidade de Shapiro-Wilk.")
+
+```
+
+**Conclusão:** Com nível de significância de 5%, os testes de Shapiro-Wilk, não rejeita-se a hipótese nula em nenhum dos grupos, tanto para a idade quanto para os níveis de colesterol (sendo todos os p-valores superiores a 0,05). Portanto, a suposição de normalidade pode ser considerada para ambas as variáveis nos grupos M1 e M2. 
+
+**b.** Compare as variâncias da idade e do nível de colesterol dos pacientes que receberam os dois medicamentos, com nível de significância de 0,05.
+
+Para as hipóteses relacionadas as variâncias temos;
+$$
+\begin{cases}
+H_{0}: \sigma_{\text{idade},M1}^{2} = \sigma_{\text{idade},M2}^{2}, \\
+H_{1}: \sigma_{\text{idade},M1}^{2} \neq \sigma_{\text{idade},M2}^{2},
+\end{cases} \,\, \text{e} \,\,\,
+\begin{cases}
+H_{0}: \sigma_{\text{HDL},M1}^{2} = \sigma_{\text{HDL},M2}^{2}, \\
+H_{1}: \sigma_{\text{HDL},M1}^{2} \neq \sigma_{\text{HDL},M2}^{2}.
+\end{cases} 
+$$ 
+Comparando das variâncias das idade e níveis de colesterol
+
+```{r}
+
+# Variâncias para cada um dos grupos
+variancias <- dados1%>%
+  group_by(Grupo)%>%
+  summarise(
+    Variancia_Idade      = var(Idade, na.rm = TRUE),
+    Variancia_Colesterol = var(Colesterol, na.rm = TRUE)
+  )
+
+# Testde F para a variável idade 
+teste_var_idade <- var.test(
+  Idade~Grupo,
+  data = dados1,
+  alternative = "two.sided",
+  conf.level = 0.95)
+
+teste_var_colesterol <- var.test(
+  Colesterol~Grupo,
+  data = dados1,
+  alternative = "two.sided",
+  conf.level = 0.95
+)
+
+# Extraindo as variâncias dos dois medicamentos 
+var_idade_1 <- variancias$Variancia_Idade[1]
+var_idade_2 <- variancias$Variancia_Idade[2]
+
+var_colesterol_1 <- variancias$Variancia_Colesterol[1]
+var_colesterol_2 <- variancias$Variancia_Colesterol[2]
+
+# Construindo a tabela de resultados
+resultado_variancias <- data.frame(
+  Variavel = c("Idade","Colesterol"),
+  
+  Variancia_grupo1 = c(var_idade_1,var_colesterol_1),
+  Variancia_grupo2 = c(var_idade_2,var_colesterol_2),
+  
+  F = c(unname(teste_var_idade$statistic),
+        unname(teste_var_colesterol$statistic)),
+  
+  p_valor = c(teste_var_idade$p.value,teste_var_colesterol$p.value)
+)
+
+# Adicionar na conclusão
+resultado_variancias <- resultado_variancias %>%
+  mutate(
+    Conclusao = ifelse(
+      p_valor > 0.05,
+      "Não rejeita igualdade das variâncias",
+      "Rejeita igualdade de variâncias"
+    )
+  )
+
+# Tabela formatada
+kable(
+  resultado_variancias,
+  digits = 4,
+  col.names = c(
+    "Variável",
+    "Variância M1",
+    "Variância M2",
+    "F",
+    "p-valor",
+    "Conclusão"
+  ),
+  caption = "Teste F de comparação das variâncias entre os grupos."
+)
+
+```
+**Conclusão:** Com o nível de significância de 5%, não rejeita-se a hipótese nula de igualdade das variâncias para a idade $( p = 0,116)$ nem para os níveis de colesterol $(p = 0.982)$. Portanto, as variâncias da idade é níveis de colesterol não são diferentes entre os pacientes dos grupos M1 e M2. 
+
+**c.** Há diferença das médias da idade e do nível de colesterol dos pacientes entre os dois grupos? Utilize o nível de significância de 0,05. Construa os intervalos de confiança de 95% para a diferença de médias entre os grupos das duas variáveis. 
+
+Para as hipóteses relacionadas as médias temos;
+$$
+\begin{cases}
+H_0: \mu_{\text{idade},M_1} = \mu_{\text{idade},M_2}, \\ 
+H_1: \mu_{\text{idade},M_1} \neq \mu_{\text{idade},M_2},
+\end{cases}  \,\, \text{e} \,\,\,
+\begin{cases}
+H_0: \mu_{\text{HDL},M_1} = \mu_{\text{HDL},M_2} ,\\ 
+ H_1: \mu_{\text{HDL},M_1} \neq \mu_{\text{HDL},M_2} .
+\end{cases}
+$$
+
+Teste para a idade e níveis de colesterol 
+```{r}
+
+# Médias por grupo
+medias <- dados1%>%
+  group_by(Grupo) %>%
+  summarise(
+    Media_idade      = mean(Idade,na.rm = T), 
+    Media_colesterol = mean(Colesterol,na.rm =T)   
+  )
+
+# Teste t de student para a idade 
+teste_idade <- t.test(
+  Idade ~ Grupo,
+  data = dados1,
+  alternative = "two.sided",
+  var.equal = TRUE,
+  conf.level = 0.95
+)
+
+# Teste t de student para o nível de colesterol
+teste_colesterol <- t.test(
+  Colesterol ~ Grupo,
+  data = dados1,
+  alternative = "two.sided",
+  var.equal = TRUE,
+  conf.level = 0.95
+)
+
+# Adicionando numa tabela de resultados
+resultado_medias <- data.frame(
+  
+  Variável = c("Idade","Colesterol"),
+  
+  Media_grupo1 = c(
+    teste_idade$estimate[1],
+    teste_colesterol$estimate[1]
+  ),
+  
+  Media_grupo2 <- c(
+    teste_idade$estimate[2],
+    teste_colesterol$estimate[2]
+  ),
+  
+  IC_inferior <- c(
+    teste_idade$conf.int[1],
+    teste_colesterol$conf.int[1]
+  ),
+  
+  IC_superior <- c(
+    teste_idade$conf.int[2],
+    teste_colesterol$conf.int[2]
+  ),
+  
+  p_valor <- c(
+    teste_idade$p.value,
+    teste_colesterol$p.value
+  )
+)
+
+resultado_medias <- resultado_medias %>%
+  mutate(
+    Conclusao = ifelse(
+      p_valor > 0.05,
+      "Não há diferença entre as médias",
+      "Há diferença entre as médias"
+    )
+  )
+
+# Sintetizando todos os resultados
+kable(
+  resultado_medias,
+  digits = 3,
+  col.names = c(
+    "Variável",
+    "Média M1",
+    "Média M2",
+    "IC 95%(LI)",
+    "IC 95%(LS)",
+    "p-valor",
+    "Conclusão"
+  ),
+  caption = "Comparação das médias entre os grupos."
+)
+```
+
+**Conclusão:** Com nível de significância de 5%, não rejeita-se a hipótese nula de igualdade das médias de idade entre os grupos M1 e M2 $(p = 0,156)$. Portanto, é possível afirmar que a idade média dos pacientes não difere entre os dois grupos.  Contudo, com nível de significância de 5%, rejeita-se a hipótese nula de igualdade médias dos níveis de colesterol entre os grupos M1 e M2 $(p = 0,015)$. Portanto, há diferença entre os níveis médios de colesterol entre os dois grupos. O grupo M1 apresenta média de $143,99$, enquanto o grupo M2 apresenta média de $132,7$.
+
+**2.** Considere a classificação abaixo relativa às qualidades de aroma e sabor do café arábica, que se encontra disponível na Instrução Normativa nº8, do dia 11 de Junho de 2003 do Ministério da Agricultura, Pecuária e Abastecimento.
+
+Uma empresa de torrefação deseja comparar se a qualidade da bebida de dois grandes fornecedores difere entre si, decidindo avaliar duas abordagens:
+
+**a)** Comparar se a proporção de bebidas finas é diferente entre os fornecedores. Utilize o nível de significância de 0,05.
+```{r}
+dados2 <- read_excel("~/Documentos/Disciplinas/Análise no R/Aula 6/06_dadosR.xlsx", 
+    sheet = "AtividadeCafe")
+```
+Verificando a classificação das bebidas por fornecedor 
+```{r}
+ 
+tab_tipo  <- table(dados2$Tipo,dados2$Fornecedor)
+prop_tipo <- prop.table(tab_tipo,margin = 2)*100
+
+# Visualização gráfica 
+barplot(
+  prop_tipo,
+  beside = F,
+  col = c("darkred","darkorange"),
+  border = "black",
+  ylim = c(0,100 + 10),
+  main = "Classificação das bebidas por fornecedor",
+  xlab = "",
+  ylab = "Proporção (%)",
+  legend.text = row.names(prop_tipo),
+  args.legend = list(x = "topright", bty = "n",
+                     inset = c(-0.08,-0.17),xpd = TRUE)
+)
+
+```
+
+Verificando a classificação do subgrupos por fornecedor 
+```{r}
+tab_subgrupo  <- table(dados2$Subgrupo,dados2$Fornecedor)
+prop_subgrupo <- prop.table(tab_subgrupo,margin = 2)*100
+prop_grafico  <- t(prop_subgrupo)
+
+# Visualização gráfica
+barplot(
+  prop_grafico,
+  beside    = T,
+  col       = c("darkmagenta", "brown4"),
+  border    = "black",
+  ylim      = c(0, max(prop_grafico) + 10),
+  main      = "Distribuição dos subgrupos por fornecedor",
+  xlab      = "", 
+  ylab      = "Proporção (%)",
+  names.arg = c("A_Mole","Duro","E_Mole","Mole","Riado","Rio","R_Zona"),
+  legend.text = c("Fornecedor A","Fornecedor B"),
+  args.legend = list(
+    x   = "topright",
+    bty = "n"
+  )
+)
+```
+Comparando se as proporções de bebidas finas é diferente entre os fornecedores. As hipóteses são;
+$$
+\begin{cases}
+H_0: p_A = p_B, \\
+H_1: p_A \neq p_B.
+\end{cases}
+$$
+
+Realizando o teste de proporções entre os grupos 
+```{r}
+# Tabela de frequências
+tabela_a <- table(dados2$Fornecedor, dados2$Tipo)
+tabela_a
+
+# Proporção para cada fornecedor
+round(prop.table(tabela_a, margin = 1)*100, 2)
+
+# Teste de igualdade de proporções 
+prop.test(
+  tabela_a,
+  alternative = "two.sided",
+  correct = F)
+```
+
+**Conclusão:** Com nível de significância de 5%, não rejeita-se a hipótese nula, uma vez que o p-valor obtido foi superior a 0,05. Portanto, a proporção de bebidas finas difere entre os fornecedores A e B.  
+
+**b)** Comparar se existe diferença entre os fornecedores considerando cada subgrupo de classificação da bebida quanto a aroma e sabor. Utilize o nível de significância de 0,05.
+
+Consideremos os sete subgrupos: **Estritamente Mole, Mole, Apenas Mole, Duro, Riado, Rio, Rio Zona**. Vamos verificar se a distribuição das classificações é a mesma nos dois fornecedores. 
+
+As hipóteses do qui-quadrado são; 
+$$
+\begin{cases}
+H_0: \text{a distribuição dos subgrupos é a mesma entre os dois fornecedores},\\
+H_1: \text{a distribuição dos subgrupos difere entre os dois fornecedores}. 
+\end{cases}
+$$
+
+Realizando o teste qui-quadrado
+```{r}
+# Tabela observada para os dados
+tabela_b <- table(dados2$Fornecedor,dados2$Subgrupo)
+tabela_b
+ 
+# Proporção para cada fornecedor
+round(prop.table(tabela_b, margin = 1)*100, 2)
+
+# Teste de qui-quadrado
+teste_b <- chisq.test(tabela_b)
+teste_b
+```
+Como os subgrupos também podem ser interpretados segunda uma ordem de qualidade, pode-se realizar uma análise ordinal, considerando:
+$$
+\text{Rio Zona}<\text{Rio}<\text{Riado}<\text{Duro}
+<\text{Apenas Mole}<\text{Mole}<\text{Estritamente Mole}.
+$$
+Nesse caso, as hipóteses são; 
+$$
+\begin{cases}
+H_0:\text{não há diferença na posição/distribuição ordinal das classificações entre os fornecedores},\\
+H_1:\text{há diferença na posição/distribuição ordinal das classificações entre os fornecedores}.
+\end{cases}
+$$
+Realizando o teste de Wilcoxon
+```{r}
+dados2$Qualidade_ord <- factor(
+  dados2$Subgrupo,
+  levels = c(
+    "Rio_Zona",
+    "Rio",
+    "Riado",
+    "Duro",
+    "Apenas_mole",
+    "Mole",
+    "Estritamente_mole"
+  ),ordered = TRUE
+)
+
+# Transformando os dados em númericos 
+dados2$Escore <- as.numeric(dados2$Qualidade_ord)
+
+# Teste de Wilcoxon
+wilcox.test(Escore ~ Fornecedor,
+            data = dados2,
+            alternative = "two.sided",
+            exact = FALSE)
+```
+
+**Conclusão:** Considerando individualmente os subgrupos de classificação da bebida, o teste qui-quadrado apresentou $(\chi^2=13,486)$, com 6 graus de liberdade e $(p\text{-valor}=0,03593)$ . Como o nível de significância de 5%, rejeita-se a hipótese nula,uma vez que o p-valor obtido foi inferior a 0,05. Portanto, a distribuição dos subgrupos difere quanto aos fornecedores A e B. 
+
+Alternativamente, ao considerar os subgrupos como uma variável ordinal, o teste de Wilcoxon apresentou $(W=46228)$ e $(p\text{-valor}=0,2134)$. Nesse caso, não rejeita-se a hipótese nula, não havendo evidências de que um fornecedor apresente classificações superiores ou inferiores ao outro.
+
+Por fim, os resultados não são contraditórios, pois os testes avaliam aspectos distintos. O qui-quadrado identifica diferenças na distribuição das frequências entre os subgrupos, enquanto o Wilcoxon avalia diferenças na posição das observações em uma escala ordinal (algo que foi realizado para esse exercício).
+
+
+
+
+
+
+
+

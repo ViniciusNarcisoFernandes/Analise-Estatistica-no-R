@@ -1,0 +1,729 @@
+---
+title: "Prova: Análises Estatísticas no R e suas aplicações nas diversas áreas de conhecimento"
+author: "Vinícius Narciso Fernandes"
+date: "12/11/2026"
+output: pdf_document
+---
+
+```{r}
+library(readxl)
+library(ggplot2)
+library(nortest)
+library(patchwork)
+library(tidyverse)
+library(knitr)
+library(pwr)
+```
+
+**1.** Em vários lugares do mundo, caranguejos apresentam grande importância cultural e socioeconômica, sustentando populações tradicionais extrativistas de baixa renda. Considerando que o tamanho de um caranguejo segue uma distribuição Normal com média de 32.5 cm e desvio-padrão de 3.5 cm e, ao selecionar um ao acaso, qual é a probabilidade de que ele tenha um tamanho
+
+$$
+X \sim N(32.5,3.5^{2})
+$$
+
+**a.** menor do que 30 cm?
+
+$$
+P(X < 30)
+$$
+```{r}
+pnorm(30, mean = 32.5, sd = 3.5)
+```
+**b.** entre 25 e 35 cm?
+$$
+P( 25 < X < 35)
+$$
+```{r}
+pnorm(34, mean = 32.5, sd = 3.5) - pnorm(26, mean = 32.5, sd = 3.5)
+```
+**c.** maior do que 40 cm? 
+$$
+P(X > 40)
+$$
+```{r}
+1 - pnorm(40, mean = 32.5, sd = 3.5)
+```
+**d.** Qual é o tamanho esperado entre os 15% menores? E dos 7.5% maiores caranguejos?
+$$
+P(X \leq x_1 ) = 0.15
+$$
+```{r}
+qnorm(0.15, mean = 32.5, sd = 3.5)
+```
+
+$$
+P(X \geq x_2) = 0.075
+$$
+```{r}
+qnorm(0.075, mean = 32.5, sd = 3.5, lower.tail = F)
+```
+
+**2.** O aleitamento materno é a estratégia que isoladamente mais previne mortes em crianças menores de cinco anos, visto que o leite materno é superior a qualquer outro leite nessa fase da vida, pois é um alimento completo que possui todos os nutrientes que o bebê precisa, sendo de mais fácil digestão. Um estudo avaliou a qualidade de leite materno coletado pelas puérperas e refrigerado numa unidade municipal de saúde. Com as informações que constam no arquivo Excel. 
+
+**a.** Calcule as estatísticas descritivas e o gráfico de boxplot dos níveis de lactose e de fósforo.
+```{r}
+dados2 <- read_excel("~/Documentos/Disciplinas/Análise no R/Prova/Dados.xlsx",
+                     sheet = "Exercício2")
+
+cat(
+  "---------------------------------------------------\n",
+  "-------- Estatística Descritiva - Lactose ---------\n",
+  "---------------------------------------------------\n",
+  "Média =", round(mean(dados2$Lactose), 2), "\n",
+  "Mediana =", round(median(dados2$Lactose), 2), "\n",
+  "1º Quartil (Q1) =", round(quantile(dados2$Lactose, 0.25),2),"\n",
+  "3º Quartil (Q3) =", round(quantile(dados2$Lactose, 0.75),2),"\n",
+  "Intervalo Interquartílico (IQR) =", round(IQR(dados2$Lactose),2),"\n",
+  "Máximo =", round(max(dados2$Lactose),2), "\n",
+  "Mínimo =", round(min(dados2$Lactose),2), "\n",
+  "Desvio-padrão =", round(sd(dados2$Lactose,),2), "\n",
+  "Coeficiente de Variação (CV%) =", round((sd(dados2$Lactose)/mean(dados2$Lactose))*100,2),"%\n",
+  "---------------------------------------------------\n",
+  "----------- Estatística Descritiva - Fósforo ------\n",
+  "---------------------------------------------------\n",
+  "Média =", round(mean(dados2$Fosforo),2),"\n",
+  "Mediana =", round(median(dados2$Fosforo),2),"\n",
+  "1º Quartil (Q1) =", round(quantile(dados2$Fosforo, 0.25),2), "\n",
+  "3º Quartil (Q3) =", round(quantile(dados2$Fosforo, 0.75),2), "\n",
+  "Intervalo Interquartílico (IQR) =", round(IQR(dados2$Fosforo),2), "\n",
+  "Máximo =", round(max(dados2$Fosforo),2), "\n",
+  "Mínimo =", round(min(dados2$Fosforo),2), "\n",
+  "Desvio-padrão =", round(sd(dados2$Fosforo),2), "\n",
+  "Coeficiente de Variação (CV%) =", round((sd(dados2$Fosforo)/mean(dados2$Fosforo))*100,2),"%\n",
+  "---------------------------------------------------\n"
+)
+
+# Gráficos de boxplot 
+g1 <- ggplot(dados2, aes(y = Lactose)) + 
+  geom_boxplot(alpha = 0.8,
+               color = "black",
+               fill = "lightblue") + 
+  labs(title = "Boxplot para Lactose",
+       x = NULL,
+       y = "Lactose (mg/dL)") + 
+  theme_minimal() + 
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_blank(), 
+        axis.ticks.x = element_blank())
+
+g2 <- ggplot(dados2, aes(y = Fosforo)) + 
+  geom_boxplot(alpha = 0.8,
+               color = "black",
+               fill = "lightgreen") + 
+  labs(title = "Boxplot do Fosforo",
+       x = NULL,
+       y = "Fosforo (mg/dL)") + 
+  theme_minimal() + 
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_blank(), 
+        axis.ticks.x = element_blank())
+
+# Juntando os dosi gráficos 
+g1 + g2
+
+
+```
+**Interpretação.** Para a lactose observar-se que os valores concentrados em torno de uma média de $6,39$ e mediana de $6,30$, com $50\%$ das observações centrais situadas entre 5,84 ($Q_1$) e 6,78 ($Q_3$) ($\text{IQR} = 0,93$). Adicionalmente, a distribuição exibe leve assimetria positiva (à direita), evidenciada pele média ligeiramente superior à mediana, pela linha da mediana posicionada um pouco abaixo do centro da caixa e pela haste superior (até o máximo de $7{,}90$) discretamente mais alongada que a inferior (até o mínimo de $4{,}94$). O desvio-padrão de $0{,}74$ e o coeficiente de variação de $11{,}61\%$ indicam baixa dispersão relativa (dados homogêneos). No que refere-se ao fósforo observa-se que a média de $13{,}40$ e mediana de $13{,}27$, com os $50\%$ centrais dos dados distribuídos entre $11{,}61$ ($Q_1$) e $15{,}02$ ($Q_3$) ($\text{IQR} = 3,41$), variando de um mínimo de $9{,}09$ a um máximo de $18{,}32$. O boxplot mostra uma distribuição bastante simétrica, com a linha da mediana praticamente centralizada no interior da caixa, hastes de comprimentos muito próximos e valores de média e mediana muito próximos entre si. Além disso, Apresenta maior variabilidade relativa em comparação à lactose, com desvio-padrão de $2{,}29$ e coeficiente de variação de $17{,}05\%$ (dispersão moderada). Por fim, é possível observar que há ausência de outliers. Logo, tanto para a lactose quanto para o fósforo, os boxplots, não apresentam pontos isolados além das hastes (whiskers), indicando, assim, que não há valores discrepantes nas amostras. 
+
+**b.** Verifique a suposição de normalidade dos níveis de lactose e de fósforo, com nível de significância de 0,05.
+
+$$
+\begin{cases}
+H_{0}: \text{Os dados seguem uma distribuição Normal.}\\
+H_{1}: \text{Os dados não seguem uma distribuição Normal.}
+\end{cases} \quad \alpha = 0{,}05
+$$
+
+```{r}
+# Teste de Shapiro-Wilk para normalidade (Lactose)
+teste_lactose <- shapiro.test(dados2$Lactose)
+
+# Teste de Shapiro-Wilk para normalidade (Fosforo)
+teste_fosforo <- shapiro.test(dados2$Fosforo)
+
+#Verificando os valores
+cat(" -----------------------------","\n",
+    "---------- P-value ----------","\n",
+    "-----------------------------","\n",
+    "p-value (Lactose):",teste_lactose$p.value,"\n",
+    "p-value (Fósfoto):",teste_fosforo$p.value,"\n",
+    "-----------------------------"
+    )
+
+# Verificação Visual (QQ-Plot)
+
+q1 <- ggplot(dados2, aes(sample = Lactose)) +
+  stat_qq(color = "darkblue", size = 2, alpha = 0.8) +
+  stat_qq_line(color = "red", linewidth = 1) +
+  labs(
+    title = "QQ-Plot: Níveis de Lactose",
+    x = "Quantis Teóricos (Normal)",
+    y = "Quantis Amostrais (Lactose)"
+  ) +
+  theme_minimal() + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+# QQ-Plot para Fósforo
+q2 <- ggplot(dados2, aes(sample = Fosforo)) +
+  stat_qq(color = "darkgreen", size = 2, alpha = 0.8) +
+  stat_qq_line(color = "red", linewidth = 1) +
+  labs(
+    title = "QQ-Plot: Níveis de Fósforo",
+    x = "Quantis Teóricos (Normal)",
+    y = "Quantis Amostrais (Fósforo)"
+  ) +
+  theme_minimal() + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+# Juntando os dois QQ-Plots 
+q1 + q2 
+
+```
+**Interpretação.** Ao nível de significância de $5\%$ $(\alpha = 0,05)$, o teste de Shapiro-Wilk apresentou $p\text{-valor} = 0,13$ ($> 0,05$) para a lactose e $p\text{-valor} = 0,55$ ($> 0,05$) para o fósforo. Portanto, não rejeitamos $H_0$, concluindo que não há evidências estatísticas contra a suposição de normalidade para ambas as variáveis. Visualmente, nos gráficos QQ-Plot, os pontos amostrais acompanham de forma satisfatória a linha de referência teórica (em vermelho), corroborando a adequação da distribuição Normal aos dados. 
+
+
+**c.** O nível de lactose é maior do que $6{,}2$ mg/dL? O nível de fósforo é menor do que $14$ mg/dl? Utilize um teste de hipóteses e o nível de significância de 0,05.
+
+$$
+\begin{cases}
+H_{0}: \mu_{\text{Lactose}} \leq 6.2 \text{(o nível médio de lactose é menor ou igual a 6.2 mg/dL).}\\
+H_{1}: \mu_{\text{Lactose}} > 6.2 \text{(o nível médio de lactose é maior do que 6.2 mg/dL).}
+\end{cases} \quad \alpha = 0{,}05
+$$
+```{r}
+t.test(dados2$Lactose, mu = 6.2, alternative = "greater", conf.level = 0.95)
+```
+
+$$
+\begin{cases}
+H_{0}: \mu_{\text{Fosforo}} \geq 14 \text{(o nível do fosfóro é maior ou igual a 14 mg/dL)}.\\
+H_{1}: \mu_{\text{Fosforo}} < 14 \text{(o nível de fosfóro é menor do que 14 mg/dL)}.
+\end{cases} \quad \alpha = 0{,}05
+$$
+
+```{r}
+t.test(dados2$Fosforo, mu = 14, alternative = "less", conf.level = 0.95)
+```
+**Interpretação.** Ao nível de significância de $5\%$ $(\alpha = 0,05)$, é possível afirmar que $p\text{-value} = 0,02912 < 0,05$ e $p\text{-value} = 0,02593 < 0,05$ para a lactose e o fosforo. Logo, rejeita-se $H_0$ em ambos os testes, concluindo que há evidências estatísticas suficientes para afirmar que o nível médio de lactose é **maior** do que 6,2 mg/dL e que o nível médio de fósforo é **menor** do que 14 mg/dL.  
+
+**d.** Construa intervalos de confiança de 95% para o nível médio de lactose e fósforo. Interprete os ICs obtidos.
+```{r}
+
+# Construção do intervalo de confiança para a Lactose
+media_lac   <- mean(dados2$Lactose)
+desvio_lac  <- sd(dados2$Lactose)
+n_lac       <- length(dados2$Lactose)
+
+erro_lac <- desvio_lac/sqrt(n_lac)
+
+inf_lac <- media_lac - qt(0.975, df = n_lac - 1)*erro_lac
+sup_lac <- media_lac + qt(0.975, df = n_lac - 1)*erro_lac
+
+# Construção do intervalo de confiança para o Fosforo
+media_fosf   <- mean(dados2$Fosforo)
+desvio_fosf  <- sd(dados2$Fosforo)
+n_fosf       <- length(dados2$Fosforo)
+
+erro_fosf <- desvio_fosf/sqrt(n_fosf)
+
+inf_fosf <- media_fosf - qt(0.975, df = n_fosf - 1)*erro_fosf
+sup_fosf <- media_fosf + qt(0.975, df = n_fosf - 1)*erro_fosf
+
+cat(
+    " -------------------------------------------------------\n",
+    "         Intervalo de Confiança - Lactose            ","\n",
+    "--------------------------------------------------------\n",
+    "Media amostral = ", media_lac ,"\n",
+    "Desvio-padrão amostral = ", desvio_lac ,"\n",
+    "Tamanho amostral = ", n_lac ,"\n",
+    "Erro-Padrão = ", erro_lac, "\n",
+    "Intervalo de Confiança de 95% = [",round(inf_lac, 3),",", round(sup_lac,3),"]\n",
+    "-------------------------------------------------------\n",
+    "         Intervalo de Confiança - Fósforo            ","\n",
+    "-------------------------------------------------------\n",
+    "Media amostral = ", media_fosf ,"\n",
+    "Desvio-padrão amostral = ", desvio_fosf ,"\n",
+    "Tamanho amostral = ", n_fosf ,"\n",
+    "Erro-Padrão = ", erro_fosf, "\n",
+    "Intervalo de Confiança de 95% = [",round(inf_fosf, 3), ",", round(sup_fosf, 3),"]\n",
+    "-------------------------------------------------------"
+)
+
+```
+**Interpretação.** Com $95\%$ de confiança, estima-se que o verdadeiro nível médio populacional de lactose no leite materno refrigerado esteja compreendido entre $6{,}193$ mg/dL e $6{,}583$ mg/dL. Para o fósforo, com $95\%$ de confiança, estima-se que o verdadeiro nível médio populacional esteja entre $12{,}803$ mg/dL e $14{,}005$ mg/dL.
+
+
+**e.** Qual seria o tamanho da amostra para verificar as perguntas levantadas no item c, com nível de significância de 0,05 e poder de 80%? 
+```{r}
+# Tamanho da amostra para Lactose (H1: mu > 6.2) 
+delta_lac <- abs(mean(dados2$Lactose) - 6.2)
+delta_lac
+sd_lac    <- sd(dados2$Lactose)
+
+amostra_lac <- power.t.test(
+  delta       = delta_lac,
+  sd          = sd_lac,
+  sig.level   = 0.05,
+  power       = 0.80,
+  type        = "one.sample",
+  alternative = "one.sided"
+)
+
+
+# Tamanho da amostra para Fósforo
+delta_fos <- abs(mean(dados2$Fosforo) - 14)
+delta_fos
+sd_fos    <- sd(dados2$Fosforo)
+
+amostra_fos <- power.t.test(
+  delta       = delta_fos,
+  sd          = sd_fos,
+  sig.level   = 0.05,
+  power       = 0.80,
+  type        = "one.sample",
+  alternative = "one.sided"
+)
+
+cat(
+    " ---------------------------------\n",
+    "       Tamanho da amostra         \n",
+    "----------------------------------\n",
+    "Tamanho da amostra de lactose:",ceiling(amostra_lac$n),"\n",
+    "Tamanho da amostra de fosforo:",ceiling(amostra_fos$n),"\n",
+    "----------------------------------"
+)
+```
+**Interpretação.** Considerando o tamanho de efeito observado na amostra ($\delta = 0,188\text{ mg/dL}$ para a lactose e $\delta = 0,596\text{ mg/dL}$ para o fósforo), um nível de significância de $5\%$ ($\alpha = 0,05$) e um poder estatístico de $80\%$ ($1 - \beta = 0,80$) em testes $t$ unilaterais para uma amostra, seriam necessárias:
+
+  - 98 amostras de leite materno para detectar que o nível médio de lactose é superior a $6,2\text{ mg/dL}$;
+  
+  - 93 amostras de leite materno para detectar que o nível médio de fósforo é inferior a $14\text{ mg/dL}$.
+
+Portanto, caso o objetivo seja responder simultaneamente às duas perguntas com pelo menos 80% de poder em ambas as análises, recomenda-se coletar uma amostra mínima de 98 observações.
+
+
+**3.** A cefaleia é um dos sintomas mais comuns da medicina, possuindo uma infinidade de causas base: estresse, tabagismo, excesso de ingestão de bebida alcoólica, sono irregular, longos períodos de jejum, problemas oftalmológicos, etc., ou ainda não tendo nenhum causador definido. Uma pesquisa avaliou dois medicamentos para o seu tratamento. Pacientes internados num grande instituto de saúde foram selecionados aleatoriamente para receber um dos medicamentos e verificou-se se houve a melhora da cefaleia. Outras informações tais como sexo e idade também foram levantadas. 
+
+**a.** Apresente o número e a porcentagem de pacientes por sexo que participaram do estudo para cada medicamento.
+
+```{r}
+dados3 <-  read_excel("~/Documentos/Disciplinas/Análise no R/Prova/Dados.xlsx", 
+                      sheet = "Exercício3")
+
+# Masculino e Feminino
+tabela_n <- table(Medicamento = dados3$Medicamento, Sexo = dados3$Sexo)
+addmargins(tabela_n)
+
+# Tabela de porcentagens
+tabela_pct <- round(prop.table(tabela_n, margin = 1)*100, 2)
+tabela_pct
+```
+**Interpretação.** Participaram do estudo um total de 570 pacientes, distribuídos de forma equilibrada entre os dois grupos de tratamento e entre os sexos (289 mulheres e 281 homens no total). Para o Medicamento A ($n = 280$), foi administrado a 151 pacientes do sexo feminino ($53{,}93\%$) e 129 pacientes do sexo masculino ($46{,}07\%$). Já para o medicamento Medicamento B ($n = 290$), foi administrado a 138 pacientes do sexo feminino ($47{,}59\%$) e 152 pacientes do sexo masculino ($52{,}41\%$). Observa-se que a proporção entre homens e mulheres é bastante semelhante e balanceada nos dois braços da pesquisa.
+
+
+
+**b.** Calcule as estatísticas descritivas da idade por medicamento e verifique a suposição de normalidade com nível de significância de 0,05.
+
+A suposição de normalidade - Teste de Shapiro-Wilk
+$$
+\begin{cases}
+H_{0}: \text{A idade dos pacientes neste medicamento segue distribuição Normal}.\\
+H_{1}: \text{A idade dos pacientes neste medicamento não segue distribuição Normal}.
+\end{cases} \,\, \alpha = 0{,}05
+$$
+
+```{r}
+# Porcentagem e quantidade de dados 
+tabela_sexo <- dados3 %>%
+  count(Medicamento, Sexo, name = "n") %>%
+  group_by(Medicamento) %>%
+  mutate(Porcentagem = round((n/sum(n))*100,2)) %>%
+  ungroup()
+
+tabela_sexo
+
+# Estatística descritiva da Idade por Medicamento 
+descritivas_idade <- dados3 %>%
+  group_by(Medicamento) %>%
+  summarise(
+    n          = n(),
+    Media      = round(mean(Idade), 2),
+    Desvio_Pad = round(sd(Idade), 2),
+    Minimo     = min(Idade),
+    Q1         = quantile(Idade, 0.25),
+    Mediana    = median(Idade),
+    Q3         = quantile(Idade, 0.75),
+    IIQ        = IQR(Idade),
+    Maximo     = max(Idade)
+  )
+
+descritivas_idade
+
+# Teste de normalidade de Shapiro-Wilk
+tapply(dados3$Idade, dados3$Medicamento, shapiro.test)
+
+# QQ-Plot
+ggplot(dados3, aes(sample = Idade)) +
+  stat_qq(color = "darkorange", size = 2, alpha = 0.7) +
+  stat_qq_line(color = "darkred", linewidth = 1) +
+  facet_wrap(~ Medicamento) +
+  labs(
+    title = "QQ-Plot da Idade por Medicamento",
+    x = "Quantis Teóricos (Normal)",
+    y = "Quantis Amostrais (Idade)"
+  ) +
+  theme_minimal() + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+**Interpretação.** As estatísticas descritivas demonstram que os dois grupos de tratamento possuem perfis etários bastante semelhantes. O Medicamento A ($n = 280$): Apresenta idade média de 48,38 anos ($\text{DP} = 3{,}87\text{ anos}$), mediana de 48 anos ($\text{IIQ} = 5\text{ anos}$, com $Q_1 = 46$ e $Q_3 = 51$) e amplitude variando entre 38 e 59 anos. Para o Medicamento B ($n = 290$): Apresenta idade média de 47,91 anos ($\text{DP} = 3{,}92\text{ anos}$), mediana de 48 anos ($\text{IIQ} = 6\text{ anos}$, com $Q_1 = 45$ e $Q_3 = 51$) e amplitude de 37 a 64 anos.
+
+Quanto à verificação da suposição de normalidade pelo teste de Shapiro-Wilk ao nível de significância de 5% ($\alpha = 0{,}05$), o Medicamento A obteve $W = 0{,}9916$ com $p = 0{,}1107 > 0{,}05$. Logo, não se rejeita $H_0$, havendo compatibilidade com a distribuição Normal, o que é confirmado visualmente pelo bom alinhamento dos pontos sobre a reta de referência no QQ-Plot. Para o Medicamento B obteve $W = 0{,}9880$ com $p = 0{,}0162 < 0{,}05$. Logo, rejeita-se $H_0$, indicando desvio estatisticamente significativo da normalidade — comportamento associado ao ligeiro afastamento nas extremidades (caudas) e à presença de um paciente com idade mais elevada (64 anos) no extremo superior do QQ-Plot.
+
+**c.** Há diferença do sexo e idade entre os grupos que receberam os diferentes medicamentos. Faça os testes de hipóteses com nível de significância de 0,05.
+
+1. Para o Sexo (Teste Qui-quadrado):
+$$
+\begin{cases}
+H_{0}: \text{A proporção de homens e mulheres é igual nos dois medicamentos}.\\
+H_{1}: \text{Há diferença na distribuição por sexo entre os medicamentos A e B}.
+\end{cases} \,\,  \alpha = 0{,}05
+$$
+2. Para a idade (Teste de Mann-Whitney)
+$$
+\begin{cases}
+H_{0}: \text{A distribuição (mediana) das idades é igual entre os medicamentos.}\\
+H_{1}: \text{A distribuição (mediana) das idades difere entre os medicamentos.}\\
+\end{cases} \,\,  \alpha = 0{,}05
+$$
+
+```{r}
+# Comparação da distribuição por Sexo
+tabela_sexo_med <- table(dados3$Medicamento, dados3$Sexo)
+chisq.test(tabela_sexo_med)
+
+# Comparação da Idade
+wilcox.test(Idade ~ Medicamento, data = dados3)
+```
+**Interpretação.** Ao nível de significância de 5% ($\alpha = 0{,}05$), os resultados dos testes indicam que os dois grupos de tratamento são demograficamente homogêneos.  O teste Qui-quadrado de Pearson resultou em $\chi^2 = 2{,}0459$ ($\text{gl} = 1$) com $p = 0{,}1526 > 0{,}05$. Portanto, não se rejeita $H_0$, concluindo que não há diferença estatisticamente significativa na proporção de homens e mulheres entre os medicamentos A e B. Como a suposição de normalidade foi rejeitada para o Medicamento B no item anterior ($p = 0{,}0162$), aplicou-se o teste não paramétrico de Mann-Whitney (Wilcoxon), obtendo-se $W = 43301$ com $p = 0{,}1682 > 0{,}05$. Logo, não se rejeita $H_0$, indicando que não há diferença estatisticamente significativa na distribuição etária entre os pacientes que receberam os medicamentos A e B.
+
+
+
+**d.** A proporção dos pacientes que relataram melhora da cefaleia com o medicamento B é maior do que do medicamento A. Responda com um teste de hipóteses e nível de significância de 0,05.
+
+As hipóteses são
+$$
+\begin{cases}
+H_{0}: p_{B} \leq p_{A} \,\,\text{(a proporção de melhora com o medicamento B é menor ou igual à do medicamento A)}.\\
+H_{1}: p_{B} > p_{A} \,\,\text{(a proporção de melhora com o medicamento B é maior do que a do medicamento A)}.
+\end{cases} \,\, \alpha = 0{,}05
+$$
+
+```{r}
+# 1. Tabela cruzada colocando "B" na 1ª linha e "Sim" na 1ª coluna
+tab_melhora <- table(
+  Medicamento = factor(dados3$Medicamento, levels = c("B", "A")),
+  Melhora     = factor(dados3$`Melhora da Cefaléia`, levels = c("Sim", "Não"))
+)
+
+# Visualizar a tabela de contagens e as proporções por linha
+tab_melhora
+round(prop.table(tab_melhora, margin = 1) * 100, 2)
+
+# 2. Teste unilateral para duas proporções (H1: p_B > p_A)
+prop.test(tab_melhora, alternative = "greater", conf.level = 0.95)
+```
+**Interpretação.** Ao nível de significância de 5% ($\alpha = 0,05$) , observa-se que, entre os pacientes que receberam o Medicamento B, 205 de 290 (70,69%) relataram melhora da cefaleia, enquanto no grupo do Medicamento A, 154 de 280 $(55,00\%)$ apresentaram melhora — uma diferença amostral de $+15{,}69$ pontos percentuais em favor do Medicamento B. No teste unilateral de comparação de duas proporções, obteve-se $\chi^2 = 14{,}376$ ($\text{gl} = 1$) com $p = 7{,}49 \times 10^{-5} < 0{,}05$ (e intervalo de confiança unilateral de 95% de $[0{,}0876;\, 1{,}0000]$, inteiramente acima de zero). Portanto, rejeita-se $H_0$, concluindo que há evidências estatísticas suficientes para afirmar que a proporção de pacientes que relataram melhora da cefaleia é significativamente maior com o Medicamento B do que com o Medicamento A.
+
+**e.** Calcule o intervalo de confiança de 95% para a diferença da proporção de melhora entre os medicamentos. Interprete o resultado.
+
+```{r}
+# Tabela com B na 1ª linha e Sim na 1ª coluna
+tab_melhora <- table(
+  Medicamento = factor(dados3$Medicamento, levels = c("B", "A")),
+  Melhora     = factor(dados3$`Melhora da Cefaléia`, levels = c("Sim", "Não"))
+)
+
+# Intervalo de Confiança bilateral de 95% para (p_B - p_A)
+resultado_ic <- prop.test(tab_melhora, alternative = "two.sided", conf.level = 0.95)
+
+# Intervalo de confiança em porcentagem
+round(resultado_ic$conf.int * 100, 2)
+```
+
+**Interpretação.** Com $95\%$ de confiança, a verdadeira diferença na proporção de pacientes que apresentam melhora da cefaleia entre os medicamentos B e A ($p_B - p_A$) está compreendida entre $7{,}50$ e $23{,}88$ pontos percentuais (ou $[0{,}0750;\, 0{,}2388]$). Como todo o intervalo situa-se estritamente acima de zero (não contendo o valor nulo), confirma-se ao nível de 5% de significância que a taxa de melhora do medicamento B supera a do medicamento A em, no mínimo, $7{,}50$ pontos percentuais e, no máximo, $23{,}88$ pontos percentuais.
+
+**f.** Construa os gráficos para o sexo, idade e resultado do medicamento administrado com o objetivo de ilustrar a comparação entre os dois medicamentos.
+
+```{r}
+# Gráfico de Sexo por Medicamento (Barras Agrupadas)
+g1 <- dados3 %>%
+      count(Medicamento, Sexo) %>%
+      group_by(Medicamento) %>%
+      mutate(pct = n / sum(n) * 100) %>%
+      ggplot(aes(x = Medicamento, y = pct, fill = Sexo)) +
+      geom_col(position = position_dodge(width = 0.8), width = 0.7) +
+      geom_text(
+        aes(label = sprintf("%.1f%%\n(n=%d)", pct, n)),
+        position = position_dodge(width = 0.8),
+        vjust = -0.3,
+        size = 3.5
+      ) +
+      scale_fill_manual(values = c("F" = "darkorange", "M" = "steelblue")) +
+      ylim(0, 70) +
+      labs(
+        title = "Distribuição por sexo segundo o medicamento",
+        x = "Medicamento",
+        y = "Porcentagem de Pacientes (%)",
+        fill = "Sexo"
+      ) +
+      theme_minimal(base_size = 12) + 
+      theme(plot.title = element_text(hjust = 0.5))
+
+
+g1
+
+# Gráfico de Idade por Medicamento 
+g2 <- ggplot(dados3, aes(x = Medicamento, y = Idade, fill = Medicamento)) +
+      geom_boxplot(alpha = 0.7, width = 0.5, outlier.shape = 16) +
+      stat_summary(
+        fun = mean,
+        geom = "point",
+        shape = 18,
+        size = 4,
+        color = "darkred"
+      ) +
+      scale_fill_manual(values = c("A" = "lightblue", "B" = "lightgreen")) +
+      labs(
+        title = "Distribuição da Idade por Medicamento",
+        subtitle = "Linha central = mediana | Losango vermelho = média",
+        x = "Medicamento",
+        y = "Idade (anos)"
+      ) +
+      theme_minimal(base_size = 12) +
+      theme(plot.title = element_text(hjust = 0.5),
+            plot.subtitle = element_text(hjust = 0.5),
+            legend.position = "none")
+
+g2 
+
+# Gráfico de Barras empilhadas 
+g3 <- dados3 %>%
+      count(Medicamento, `Melhora da Cefaléia`) %>%
+      group_by(Medicamento) %>%
+      mutate(pct = n / sum(n) * 100) %>%
+      ggplot(aes(x = Medicamento, y = pct, fill = `Melhora da Cefaléia`)) +
+      geom_col(width = 0.55) +
+      geom_text(
+        aes(label = sprintf("%.1f%% (%d)", pct, n)),
+        position = position_stack(vjust = 0.5),
+        color = "black",
+        fontface = "bold",
+        size = 4
+      ) +
+      scale_fill_manual(values = c("Não" = "firebrick", "Sim" = "mediumseagreen")) +
+      labs(
+        title = "Taxa de Melhora da Cefaleia por Medicamento",
+        x = "Medicamento",
+        y = "Porcentagem de Pacientes (%)",
+        fill = "Melhora da Cefaleia"
+      ) +
+      theme_minimal(base_size = 12) + 
+      theme(plot.title = element_text(hjust = 0.5))
+
+g3
+
+```
+
+**Interpretação.** Os três gráficos sintetizam e corroboram visualmente os resultados obtidos nas análises anteriores:
+
+  - **Sexo por Medicamento**: O gráfico de barras agrupadas evidencia uma distribuição equilibrada entre homens e mulheres nos dois grupos ($53{,}9\%$ de mulheres e $46{,}1\%$ de homens no Medicamento A; $47{,}6\%$ de mulheres e $52{,}4\%$ de homens no Medicamento B), ilustrando a ausência de associação entre sexo e tratamento ($p = 0{,}153$).  
+  
+  - **Distribuição da idade por Medicamento**: Os boxplots mostram distribuições etárias praticamente idênticas entre os tratamentos, com medianas coincidentes em $48\text{ anos}$, médias muito próximas ($48{,}38$ e $47{,}91\text{ anos}$) e intervalos interquartílicos semelhantes, observando-se apenas um valor discrepante superior de $64\text{ anos}$ no grupo B.   
+  
+  - **Taxa da melhora da Cefaleia por Medicamento**: O gráfico de barras empilhadas demonstra de forma clara a maior eficácia do Medicamento B, no qual $70{,}7\%$ ($205$) dos pacientes apresentaram melhora, frente a $55{,}0\%$ ($154$) no Medicamento A, refletindo o ganho significativo de $15{,}69$ pontos percentuais constatado nos testes de hipóteses.  
+
+
+
+**4.** Poluente atmosférico é toda e qualquer forma de matéria ou energia com intensidade e em quantidade, concentração, tempo ou características em desacordo com os níveis estabelecidos em legislação. Além disso, tornam ou podem tornar o ar impróprio, nocivo ou ofensivo à saúde, inconveniente ao bem-estar público, danoso aos materiais, à fauna e à flora ou prejudicial à segurança, ao uso e gozo da propriedade e às atividades normais da comunidade. A prefeitura de uma grande cidade realizou um levantamento da qualidade do ar em alguns pontos. Entre as informações, avaliaram-se as quantidades de partículas totais em suspensão, em m3, com o objetivo de comparar este marcador entre estes locais. 
+
+**a.** Apresente o gráfico de box-plot das variáveis de acordo com o objetivo e calcule as estatísticas descritivas média, mediana e desvio-padrão da quantidade de partículas totais por local.
+
+```{r}
+dados4 <- read_excel("~/Documentos/Disciplinas/Análise no R/Prova/Dados.xlsx", sheet = "Exercício4")
+
+# Análise descritiva dos dados 
+descritivas_particulas <- dados4 %>%
+  group_by(Local) %>%
+  summarise(
+    n          = sum(!is.na(Particulas)),
+    Media      = round(mean(Particulas), 2),
+    Mediana    = round(median(Particulas), 2),
+    Desvio_Pad = round(sd(Particulas), 2)
+  )
+
+print(as.data.frame(descritivas_particulas))
+
+# Boxplot por local 
+ggplot(dados4, aes(x = Local, y = Particulas, fill = Local)) +
+  geom_boxplot(alpha = 0.75, width = 0.5, outlier.shape = 16, outlier.size = 2) +
+  stat_summary(
+    fun = mean,
+    geom = "point",
+    shape = 18,
+    size = 3.5,
+    color = "darkred"
+  ) +
+  labs(
+    title = "Partículas Totais em Suspensão por Local",
+    subtitle = "Linha central = mediana | Losango vermelho = média",
+    x = "Local de Monitoramento",
+    y = "Partículas Totais em Suspensão (por m³)"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        legend.position = "none")
+```
+**Interpretação.** Foram analisadas $n = 20$ medições de partículas totais em suspensão em cada um dos três pontos de monitoramento:
+
+  - **Avenida Brasil:** Apresenta os maiores níveis de concentração de partículas, com média de 251 (mediana de 249) e a maior variabilidade entre os locais ($\text{DP} = 14,6$), além de maior amplitude total (haste superior próxima de 285).
+  
+  - **Avenida São Paulo:** Exibe níveis elevados e muito próximos aos da Avenida Brasil, com média de 248, mediana de 248 e desvio-padrão de 11,2, mostrando distribuição bastante simétrica.
+  
+  - **Avenida Rio Branco:** Destaca-se por apresentar concentrações substancialmente menores do que as demais vias, com média de 218, mediana de 220 e a menor dispersão ($\text{DP} = 10,9$). Toda a caixa interquartílica (e até mesmo o valor máximo) da Avenida Rio Branco situa-se abaixo dos valores mínimos observados nas Avenidas Brasil e São Paulo.
+  
+  - **Outliers e Simetria:** Não foram identificados valores discrepantes (outliers) em nenhum dos três locais, e a proximidade entre médias (losangos vermelhos) e medianas (linhas centrais) indica distribuições aproximadamente simétricas em todos os grupos.
+
+
+
+**b.** Com nível de significância de 0,05, avalie o objetivo da pesquisa.
+
+$$
+\begin{cases}
+H_{0}: \mu_{\text{Brasil}} = \mu_{\text{Rio Branco}}. \\ 
+H_{1}: \text{Pelo menos um dos locais apresenta nível médio de partículas.}
+\end{cases} \quad \alpha = 0{,}05
+$$
+
+```{r}
+
+tapply(dados4$Particulas, dados4$Local, shapiro.test) 
+bartlett.test(Particulas ~ Local, data = dados4)         
+
+# ANOVA
+modelo_anova <- aov(Particulas ~ Local, data = dados4)
+summary(modelo_anova)
+
+```
+
+**Interpretação.** Inicialmente, verificou-se que os pressupostos da análise de variância foram atendidos ao nível de significância de 5%: o teste de Shapiro-Wilk indicou normalidade dos dados em todos os grupos ($p = 0{,}8255$ para a Avenida Brasil; $p = 0{,}7952$ para a Avenida Rio Branco; e $p = 0{,}4101$ para a Avenida São Paulo), e o teste de Bartlett confirmou a homogeneidade das variâncias entre os locais ($K^2 = 2{,}0866$; $p = 0{,}3523$). Na ANOVA de uma via, obteve-se $F_{(2;\,57)} = 43{,}33$ com $p = 3{,}61 \times 10^{-12}$ ($< 0{,}05$). Portanto, rejeita-se $H_0$, concluindo que há evidências estatísticas suficientes para afirmar que existe diferença significativa na quantidade média de partículas totais em suspensão entre os locais monitorados.
+
+
+**c.** Realize as comparações múltiplas entre os locais, se necessário e com nível de significância de 0,05. Construa o gráfico que represente o resultado desta análise.
+
+1. Comparação 1 -- Avenida Brasil vs. Avenida Rio Branco:
+$$
+\begin{cases}
+H_{0}: \mu_{\text{Brasil}} = \mu_{\text{Rio Branco}}.\\ 
+H_{1}:\mu_{\text{Brasil}} \neq \mu_{\text{Rio Branco}}. 
+\end{cases} \,\, \alpha = 0{,}05
+$$
+
+2. Comparação 2 -- Avenida Brasil vs. Avenida São Paulo:
+$$
+\begin{cases}
+H_{0}: \mu_{\text{Brasil}} = \mu_{\text{São Paulo}}. \\ 
+H_{1}:\mu_{\text{Brasil}} \neq \mu_{\text{São Paulo}}.  
+\end{cases} \,\, \alpha = 0{,}05
+$$
+
+3. Comparação 3 -- Avenida São Paulo vs. Avenida Rio Branco:
+$$
+\begin{cases}
+H_{0}: \mu_{\text{São Paulo}} = \mu_{\text{Rio Branco}}.   \\ 
+H_{1}:\mu_{\text{São Paulo}} \neq \mu_{\text{Rio Branco}}. 
+\end{cases} \,\, \alpha = 0,05
+$$
+
+
+```{r}
+tukey_res <- TukeyHSD(modelo_anova, conf.level = 0.95)
+print(tukey_res)
+
+df_tukey <- as.data.frame(tukey_res$Local)
+df_tukey$Comparacao <- rownames(df_tukey)
+df_tukey$Significativo <- ifelse(df_tukey$`p adj` < 0.05, 
+                                 "Sim (p < 0,05)", "Não (p >= 0,05)")
+
+ggplot(df_tukey, aes(x = diff, y = Comparacao, color = Significativo)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "black", linewidth = 0.8) +
+  geom_errorbarh(aes(xmin = lwr, xmax = upr), width = 0.2, linewidth = 1) +
+  geom_point(size = 3.5) +
+  scale_color_manual(values = c("Não (p >= 0,05)" = "steelblue", 
+                                "Sim (p < 0,05)" = "firebrick4")) +
+  labs(
+    title = "Intervalos de Confiança de 95% - Teste de Tukey (HSD)",
+    x = "Diferença nas médias de partículas totais em suspensão (por m³)",
+    y = NULL,
+    color = "Diferença Significativa"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+**Interpretação.** omo a ANOVA global indicou diferença estatisticamente significativa entre os locais avaliados no item anterior ($p < 0{,}0001$), realizou-se o teste de comparações múltiplas de Tukey (HSD) ao nível de significância de 5% ($\alpha = 0{,}05$). Os resultados permitem concluir que:
+
+  - **Avenida Rio Branco vs. Avenida Brasil:** Rejeita-se $H_0$ ($p_{\text{adj}} < 0{,}0001$). A Avenida Rio Branco apresenta uma concentração média significativamente menor de partículas totais em suspensão em relação à Avenida Brasil, com diferença estimada em $-33{,}16\text{ /m}^3$ ($\text{IC}_{95\%}: [-42{,}57;\, -23{,}74]$).
+  
+  - **Avenida São Paulo vs. Avenida Brasil:** Não se rejeita $H_0$ ($p_{\text{adj}} = 0{,}6410$). Não há diferença estatisticamente significativa entre os níveis médios de partículas desses dois locais, com diferença estimada em $-3{,}53\text{ /m}^3$ e intervalo de confiança de 95% abrangendo o valor zero ($\text{IC}_{95\%}: [-12{,}94;\, 5{,}88]$).
+  
+  - **Avenida São Paulo vs. Avenida Rio Branco:** Rejeita-se $H_0$ ($p_{\text{adj}} < 0{,}0001$). A Avenida São Paulo registra concentração média significativamente superior à da Avenida Rio Branco, com diferença estimada em $+29{,}63\text{ /m}^3$ ($\text{IC}_{95\%}: [20{,}21;\, 39{,}04]$).
+
+Visualmente, no gráfico dos intervalos de confiança de 95%, observa-se que apenas o intervalo da comparação entre a Avenida São Paulo e a Avenida Brasil cruza a linha tracejada vertical correspondente ao zero (em azul), confirmando a equivalência estatística entre ambas. Em contrapartida, os intervalos das comparações envolvendo a Avenida Rio Branco situam-se totalmente afastados do zero (em vermelho), evidenciando que os pontos se dividem em dois grupos homogêneos: um grupo com maior concentração de poluentes (Avenida Brasil e Avenida São Paulo) e outro com concentração significativamente menor (Avenida Rio Branco).
+
+**d.** Verifique as suposições de normalidade e homocedasticidade, com nível de significância de 0,05.
+
+1. Suposição de Normalidade (Shapiro-Wilk):
+$$
+\begin{cases}
+H_{0}: \text{Os resíduos (e os dados de cada local) seguem uma distribuição Normal}. \\ 
+H_{1}: \text{Os resíduos (e os dados de cada local) não seguem uma distribuição Normal}.
+\end{cases} \,\, \alpha = 0{,}05
+$$
+
+2. Suposição de Homocedasticidade (Bartlett):
+$$
+\begin{cases}
+H_{0}: \sigma^{2}_{\text{Brasil}} = \sigma^{2}_{\text{Rio Branco}} = \sigma^{2}_{\text{São Paulo}}. \\ 
+H_{1}: \text{Pelo menos uma variância difere das demais}.
+\end{cases} \,\, \alpha = 0{,}05
+$$
+
+```{r}
+
+# Teste de Normalidade
+tapply(dados4$Particulas, dados4$Local, shapiro.test)
+shapiro.test(residuals(modelo_anova))
+
+# Homocedasticidade 
+bartlett.test(Particulas ~ Local, data = dados4)
+
+# Resíduos
+df_residuos <- data.frame(residuos = residuals(modelo_anova))
+
+ggplot(df_residuos, aes(sample = residuos)) +
+stat_qq(color = "darkblue", size = 2.5, alpha = 0.8) +
+stat_qq_line(color = "firebrick4", linewidth = 1) +
+labs(
+title = "QQ-Plot dos Resíduos da ANOVA",
+#subtitle = "Verificação da normalidade global do modelo",
+x = "Quantis Teóricos (Distribuição Normal)",
+y = "Quantis Amostrais (Resíduos)"
+) +
+theme_minimal(base_size = 12) +
+theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+plot.subtitle = element_text(hjust = 0.5))
+
+```
+**Interpretação.** Ao nível de significância de 5% ($\alpha = 0{,}05$), ambas as suposições do modelo de ANOVA foram plenamente atendidas. O teste de Shapiro-Wilk não rejeitou $H_0$ tanto na análise individual por grupo ($p = 0{,}8255$ para a Avenida Brasil; $p = 0{,}7952$ para a Avenida Rio Branco; e $p = 0{,}4101$ para a Avenida São Paulo) quanto na análise global dos resíduos do modelo ($W = 0{,}9867$; $p = 0{,}7567$). Visualmente, o QQ-Plot confirma esse resultado, exibindo os pontos dos resíduos bem alinhados ao longo da reta teórica de normalidade.  O teste de Bartlett apresentou $K^2 = 2{,}0866$ com $p = 0{,}3523 > 0{,}05$, não rejeitando $H_0$ e confirmando a homogeneidade de variâncias entre os locais. Portanto, todas as premissas estatísticas estão satisfeitas, validando os resultados obtidos pela ANOVA e pelas comparações múltiplas de Tukey nos itens anteriores.

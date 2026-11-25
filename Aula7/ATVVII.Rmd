@@ -1,0 +1,215 @@
+---
+title: "Atividade 7"
+author: "Vinícius Narciso Fernandes"
+date: "28/09/2026"
+output: pdf_document
+---
+
+Um estudo avaliou o marcador tumoral CA 15.3 em pacientes com diferentes tipos de câncer. 
+
+
+**a.** A partir das informações amostrais abaixo e com nível de significância de 0,05, há diferença dos marcadores tumorais entre os diferentes tipos de câncer?
+
+```{r}
+library(carData)
+library(car)
+library(ggplot2)
+library(patchwork)
+```
+
+Adicionando os dados num data.frame
+```{r}
+dados <- data.frame(
+  RG = c(
+    # Colorretal
+    514738,398377,917009,485256,124109,413207,765338,397750,
+    154683,577518,168312,862036,150883,520247,877562,135028,
+    254733,983478,618858,311010,573916,593932,727490,869008,
+    902642,901387,599636,558769,191919,138047,
+    
+    # Mama
+    751738,270163,133690,875329,612031,860841,906040,721215,
+    448948,431387,451769,820504,604945,419728,335076,164418,
+    166778,109492,450598,966264,589663,357248,983967,546173,
+    736925,929261,989490,615885,459654,244765,
+    
+    # Próstata
+    222797,668415,274018,325368,672211,859410,503418,284593,
+    453743,593094,511965,135631,109014,103638,458873,522899,
+    767535,730238,677620,706982,899410,467853,697956,949933,
+    786613,824160,291547,626177,827291,904167,
+    
+    # Pulmão
+    913699,451206,995829,948453,791441,589768,697784,975458,
+    149671,843924,791271,406730,831664,815533,450361,404597,
+    327234,156749,315125,214855,409043,592661,400181,861606,
+    842792,661216,192859,762949,714480,915943
+  ),
+  Cancer = rep(
+    c("Colorretal", "Mama", "Próstata", "Pulmão"),
+    each = 30
+  ),
+  CA15.3 = c(
+    # Colorretal
+    51.5,62.7,58.2,57.4,73.3,41.5,61.9,64.4,45.4,52.5,
+    61.8,70.7,58.5,63.5,58.8,43.9,73.4,66.6,64.4,60.7,
+    76.9,58.7,59.0,67.8,66.0,86.7,69.9,54.7,54.5,66.5,
+    
+    # Mama
+    62.0,43.4,51.0,34.0,42.0,49.3,54.6,63.1,65.1,47.6,
+    47.1,52.0,26.6,38.0,34.5,50.2,38.7,44.2,20.6,40.1,
+    42.0,48.9,36.1,39.1,48.3,40.4,53.7,28.7,41.0,54.4,
+    
+    # Próstata
+    46.3,52.5,60.9,47.9,49.2,67.0,65.1,48.5,49.2,46.3,
+    49.1,57.1,48.4,55.4,60.4,43.1,43.8,40.8,43.8,61.3,
+    66.8,57.0,46.2,50.2,60.1,29.3,71.6,68.7,49.5,39.1,
+    
+    # Pulmão
+    47.9,45.5,58.8,40.2,27.5,52.6,45.2,37.9,33.9,35.8,
+    71.7,42.9,52.1,60.2,41.5,45.1,39.8,50.2,45.8,47.3,
+    40.0,31.6,37.6,46.9,34.3,25.8,59.8,36.2,25.0,37.2
+  )
+)
+
+# Transformando o tipo de câncer em fator
+dados$Cancer <- factor(dados$Cancer)
+```
+
+As hipóteses que queremos testar: 
+$$
+\begin{cases}
+H_0: \mu_{\text{Colorretal}} = \mu_{\text{Mama}} = \mu_{\text{Próstata}} = \mu_{\text{Pulmão}},\\ 
+H_1: \text{pelo menos uma das médias é diferente.}
+\end{cases} \,\,\, \text{com} \,\,\, \alpha = 0.05
+$$
+
+Vamos verificar o teste de normalidade por tipo de câncer
+
+```{r}
+
+# Teste de Normalidade - Shapiro-Wilk
+by(dados$CA15.3, dados$Cancer, shapiro.test)
+
+# Teste de homogeneidade das variâncias - Teste de Levene
+leveneTest(CA15.3 ~Cancer, data = dados)
+
+# ANOVA
+modelo <- aov(CA15.3 ~ Cancer, data = dados)
+summary(modelo)
+
+# Comparação entre os grupos - Distribuição da Variável CA15.3 por grupo de Câncer
+ggplot(dados, aes(x = Cancer, y = CA15.3, fill = Cancer)) +
+  geom_boxplot(alpha = 0.6, outlier.shape = NA, width = 0.5, color = "black") +
+  geom_jitter(width = 0.15, alpha = 0.6, color = "gray45", size = 2) +
+  scale_fill_brewer(palette = "Set2") +
+  theme_minimal(base_size = 12) +
+  labs(
+    title = "Distribuição do Marcador CA15.3 por Tipo de Câncer",
+    x = "",
+    y = "CA15.3"
+  ) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    panel.grid.minor = element_blank()
+  )
+```
+**Conclusão.** Como as suposições de normalidade e homogeneidade das variâncias foram atendidas $(p > 0.05)$, aplicou-se a ANOVA. Como $p < 0.05$ no modelo ANOVA, logo, rejeita-se $H_0$, concluindo-se que há diferença significativa entre as médias do marcador tumoral nos diferentes tipos de câncer. 
+
+
+**b.** Realize a análise de resíduos para avaliar as suposições do teste utilizado no item anterior. 
+
+As hipóteses para os resíduos são:
+$$
+\begin{cases}
+H_0: \text{os resíduos  seguem distribuição normal},\\ 
+H_1: \text{os resíduos não seguem distribuição normal.}
+\end{cases} \,\,\, \text{com} \,\,\, \alpha = 0.05
+$$
+
+Inicialmente, ajustamos o modelo para obter os resíduos
+```{r}
+
+# Modelo ANOVA
+modelo <- aov(CA15.3~Cancer, data=dados)
+
+# Resíduos e valores ajustados
+residuos  <- residuals(modelo)
+ajustados <- fitted(modelo)
+
+# Teste de Normalidade dos Resíduos - Shapiro-Wilk
+shapiro.test(residuos)
+
+# Teste de Homogeneidade das variâncias
+leveneTest(CA15.3 ~ Cancer, data = dados)
+
+# Adicionando os dados num data frame
+diag_dados <- data.frame(Ajustados = ajustados, Residuo = residuos)
+
+# Gráfico do diagnóstico
+g_qq <- ggplot(diag_dados, aes(sample = Residuo)) + 
+  stat_qq(color = "blue4", size = 2.5, alpha = 0.8) + 
+  stat_qq_line(color = "red4", linetype = "dashed", linewidth = 1) + 
+  theme_minimal(base_size = 12) + 
+  labs(
+    title = "Gráfico Q-Q dos Resíduos",
+    x = "Quantis Teóricos",
+    y = "Quantis dos Resíduos"
+  ) + 
+  theme(
+    plot.title = element_text(face = "bold", size = 12,hjust = 0.5),
+    panel.grid.minor = element_blank()
+  )
+
+# Grafico Resíduos x Valores ajustados
+g_res_fit <- ggplot(diag_dados, aes(x = Ajustados, y =Residuo)) + 
+  geom_point(color = "green4", size = 3.0, alpha = 0.8) + 
+  geom_hline(yintercept = 0, color = "red3", linetype = "dashed", linewidth = 1) + 
+  theme_minimal(base_size = 12) +
+  labs(
+    title = "Resíduos vs Valores Ajustados",
+    x = "Valores Ajustados",
+    y = "Resíduos"
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", size = 12, hjust = 0.5),
+    panel.grid.minor = element_blank()
+  )
+
+# Gráficos lado a lado
+painel_diagnostico <- g_qq + g_res_fit + 
+  plot_annotation(
+    title = "Diagnóstico do Modelo ANOVA",
+    theme = theme(plot.title = element_text(face = "bold", size = 15, hjust = 0.5))
+  )
+
+print(painel_diagnostico)
+
+```
+**Conclusão.** A análise dos resíduos foi realizada com o objetivo de verificar as suposições necessárias para a aplicação da ANOVA. O gráfico Q-Q e o teste de Shapiro-Wilk foram utilizados para avaliar a normalidade dos resíduos. Além disso, o gráfico de resíduos em função dos valores ajustados e o teste de Levene foram utilizados para avaliar a homogeneidade das variâncias. Não sendo observadas violações dessas suposições, considera-se adequada a utilização da ANOVA para comparar as médias do marcador tumoral CA15.3 entre os diferentes tipos de câncer.
+
+**c.** Verifique entre quais tipos de câncer há diferença significativa dos marcadores tumorais, com nível de significância de 0,05.
+
+Como a ANOVA indicou diferença significativa entre as médias, precisamos descobrir entre quais grupos ocorre essa diferença. Para isso, utilizamos o **teste de comparações múltiplas de Tukey**. No teste de Tukey, para cada para temos as hipóteses
+
+$$
+\begin{cases}
+H_0: \mu_{i} = \mu_{j},\\ 
+H_1: \mu_{i} \neq \mu_{j}.
+\end{cases} \,\,\, \text{com} \,\,\,\, \alpha = 0.05
+$$
+
+Analisando o modelo e realizando o teste de Tukey
+```{r}
+# Modelo ANOVA 
+modelo <- aov(CA15.3~Cancer, data= dados)
+
+# Teste de Tukey - teste de comparações múltiplas 
+tukey <- TukeyHSD(modelo, conf.level = 0.95)
+tukey
+
+# Analisando as médias amostrais 
+aggregate(CA15.3 ~Cancer, data = dados, FUN = mean)
+```
+**Conclusão.** O item (a) mostra a rejeição da hipótese de igualdade das médias pela ANOVA. Foi realizado o teste de comparações múltiplas de Tukey, considerando nível de significância de 5%. Foram observadas diferenças significativas entre os grupos Colorretal-Mama, Colorretal-Próstata, Colorretal-Pulmão, Mama-Próstata e Próstata-Pulmão $(p < 0.05)$. Por outro lado, não foi encontrada diferença significativa entre os grupos Pulmão-Mama $( p = 0.9562)$. Dessa forma, os resultados indicam que os níveis médios do marcador CA15.3 diferem entre a maioria dos tipos de câncer avaliados, com exceção da comparação entre câncer de Mama e de Pulmão. 

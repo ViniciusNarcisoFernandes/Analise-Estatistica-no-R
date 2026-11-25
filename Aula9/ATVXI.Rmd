@@ -1,0 +1,183 @@
+---
+title: "Atividade A9 - Teste Qui-quadrado de Aderência e Independência"
+author: "Análises Estatísticas no R e suas aplicações nas diversas áreas de conhecimento"
+date: "05/11/2026"
+output: pdf_document
+---
+
+**1.** Em um experimento envolvendo o cruzamento de dois tipos de milho, Lindstrom encontrou quatro tipos distintos: verde ($T_1$), dourado ($T_2$), listras verdes ($T_3$) e listras verdes e douradas ($T_4$).
+
+```{r tabela1, echo=FALSE}
+tabela1 <- data.frame(
+  T1 = 773,
+  T2 = 231,
+  T3 = 238,
+  T4 = 59
+)
+
+knitr::kable(
+  tabela1,
+  caption = "Frequências observadas por Lindstrom em 1301 indivíduos de segunda geração.",
+  align = "c"
+)
+```
+De acordo com a hereditariedade mendeliana, as probabilidades de obter esses quatro tipos $T_{1}$, $T_{2}$, $T_{3}$ e $T_{4}$ são, respectivamente, $9/16$, $3/16$, $3/16$ e $1/16$. Teste a hipótese de que a distribuição dos dados observados segue as leis da hereditariedade Mendeliana, contra a hipótese alternativa de que a distribuição não segue as leis da hereditariedade Mendeliana para um nível de significância $\alpha = 0.05$.
+
+**Resolução.**
+Temos as seguintes hipóteses
+
+$$
+\begin{cases}
+H_0: p_i = p_{0i}, \quad \forall\, i \in \{1,2,3,4\},\\
+H_1: p_i \neq p_{0i}, \quad \text{para pelo menos um } i \in \{1,2,3,4\}.
+\end{cases}
+\qquad \text{com } \alpha = 0{,}05.
+$$
+
+em que 
+$$
+(p_{01},p_{02},p_{03},p_{04})
+=
+\left(\frac{9}{16},\frac{3}{16},\frac{3}{16},\frac{1}{16}\right).
+$$
+Logo,
+```{r}
+# Valor de milho observado
+milho_observado <- c(773,231,238,59) 
+p0_modelo_milho <- c(9,3,3,1)/sum(c(9,3,3,1))
+
+# Valor de milho esperado
+milho_esperado <- p0_modelo_milho*sum(milho_observado)
+
+# Teste do Qui-quadrado
+Estatistica_milho <- sum((milho_observado - milho_esperado)^2/milho_esperado)
+
+# Valor crítico
+critico_milho <- qchisq(0.05, 3,lower.tail = F)
+
+# Valor p
+valor_p_milho <- pchisq(Estatistica_milho, 3,lower.tail = F)
+
+# Tamanho do efeito de Cohen
+pH1_milho <- milho_observado/sum(milho_observado)
+pH0_milho <- milho_esperado/sum(milho_esperado)
+w_milho   <- sqrt(sum((pH1_milho-pH0_milho)^2/pH0_milho))
+
+
+# Exibição dos resultados 
+cat(
+  " ==============================================================\n",
+  "        RESULTADOS DO TESTE QUI-QUADRADO DE ADERÊNCIA         \n",
+  "==============================================================\n",
+  "Estatística do teste:", round(Estatistica_milho, digits =4), "\n",
+  "Valor crítico:       ", round(critico_milho, digits = 4), "\n",
+  "p-valor:             ", format.pval(valor_p_milho, digits = 4),"\n",
+  "Tamanho do efeito:   ", round(w_milho, digits = 4),"\n",
+  "===============================================================\n"
+)
+```
+
+**Conclusão.** Com o nível de significância de 5%, rejeita-se a hipótese $H_0$, ou seja, há evidêcnias estatísticas significativas de que a distribuição não segue as leis de hereditariedade Mendeliana.  
+
+**2.** Um experimento consistiu em examinar o efeito de diferentes fertilizantes na ocorrência da canela-preta em mudas de batata, sendo obtidos os resultados abaixo:
+```{r tabela2, echo=FALSE}
+tabela2 <- data.frame(
+  Ocorrencia = c("Com canela-preta", "Sem canela-preta"),
+  Sem_Fertilizantes = c(16, 85),
+  Nitrogenio = c(10, 85),
+  Esterco = c(4, 109),
+  Esterco_e_Nitrogenio = c(14, 127)
+)
+
+knitr::kable(
+  tabela2,
+  col.names = c("Ocorrência", "Sem Fertilizantes", "Nitrogênio", "Esterco", "Esterco e Nitrogênio"),
+  caption = "Efeito de diferentes fertilizantes na ocorrência da canela-preta.",
+  align = "lcccc"
+)
+```
+
+Teste a hipótese de independência considerando um nível de significância $\alpha = 0.05$.
+
+**Resolução.**
+
+Temos a hipótese
+$$
+\begin{cases}
+H_0: p_{ij} = p_{i.} . p_{.j}, \,\,\text{para todo par}\,\,(i,j)\,\, \text{(independência)}, \\ 
+H_1: p_{ij} \neq p_{i.} . p_{.j}, \,\, \text{para algum par} \,\, (i,j) \,\,\text{(dependência)}.
+\end{cases} \,\,\, \text{com} \,\,\, \alpha = 0.05
+$$
+Logo, 
+```{r}
+# Fertilizante observado
+fertilizante_observado<-as.table(
+  matrix(
+    c(16,10,4,14,
+      85,85,109,127),
+    nrow=2,
+    byrow = TRUE
+  )
+)
+# Nomeando as colunas e linhas 
+colnames(fertilizante_observado)<-c('Sem Fertilizantes',
+                             'Nitrogênio',
+                             'Esterco',
+                             'Esterco e Nitrogênio')
+
+
+rownames(fertilizante_observado)<-c('Com canela-preta',
+                             'Sem canela-preta')
+
+# Fertilizante esperado 
+fertilizante_esperado <-as.table(
+  matrix(
+    c(44*101/450, 44*95/450, 44*113/450, 44*141/450,
+      406*101/450, 406*95/450, 406*113/450, 406*141/450
+      ),
+    nrow=2,
+    byrow = TRUE
+  )
+)
+# Nomeando as colunas e linhas 
+colnames(fertilizante_esperado)<-c('Sem Fertilizantes',
+                             'Nitrogênio',
+                             'Esterco',
+                             'Esterco e Nitrogênio')
+
+
+rownames(fertilizante_esperado)<-c('Com canela-preta',
+                             'Sem canela-preta')
+
+# Graus de liberdade (GL)
+gl <- (nrow(fertilizante_observado) - 1) * (ncol(fertilizante_observado) - 1)
+
+# Estatística do teste
+Estatistica_fertilizante <-sum((fertilizante_observado-fertilizante_esperado)^2/
+                          fertilizante_esperado)
+
+# Valor crítico
+critico_fertilizante <-qchisq(0.05, df = gl, lower.tail = FALSE)
+
+# Valor-p
+valor_p_fertilizante <- pchisq(Estatistica_fertilizante, df = gl, lower.tail = F)
+
+# Tamanho do efeito de Cohen
+pH0_fertilizante <- fertilizante_esperado/sum(fertilizante_esperado)
+pH1_fertilizante <- fertilizante_observado/sum(fertilizante_observado)
+w_fertilizante <-sqrt(sum((pH1_fertilizante-pH0_fertilizante)^2/pH0_fertilizante))
+
+# Exibição dos resultados com cat()
+cat(
+  " ==================================================================\n",
+  "        RESULTADOS DO TESTE QUI-QUADRADO DE INDEPENDÊNCIA         \n",
+  "==================================================================\n",
+  "Estatística do teste:        ", round(Estatistica_fertilizante, 4), "\n",
+  "Valor crítico:               ", round(critico_fertilizante, 4), "\n",
+  "p-valor:                     ", format.pval(valor_p_fertilizante, digits = 4), "\n",
+  "Tamanho do efeito:           ", round(w_fertilizante, 4), "\n",
+  "==================================================================\n"
+)
+
+```
+**Conclusão.** Com o nível de significância de 5%, rejeita-se a hipótese $H_0$, ou seja, há evidências estatísticas significativas de que a ocorrência da doença canela-preta depende do tipo de fertilizante utilizado.

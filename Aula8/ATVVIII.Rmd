@@ -1,0 +1,226 @@
+---
+title: "Atividade 8"
+author: "Vinícius Narciso Fernandes"
+date: "2/10/2026"
+output: pdf_document
+---
+**1.** Um levantamento avaliou o impacto da poluição por manuseio de material químico na saúde trabalhadores. No exame de sangue avaliou a quantidade de dióxido de carbono mensurado no sangue e o objetivo é verificar se esta quantidade está relacionada com o tempo de serviço do trabalhador.
+
+**a.** Construa o gráfico de dispersão do tempo de serviço e a quantidade de dióxido de carbono no sangue.
+```{r}
+library(readxl)
+library(carData)
+library(car)
+library(ggplot2)
+library(patchwork)
+library(lmtest)
+```
+
+Construindo o gráfico de dispersão
+```{r}
+# Dados da tabela 1
+dados <- read_excel("~/Documentos/Disciplinas/Análise no R/Aula 8/DadosR.xlsx")
+
+# Gráfico de dispersão
+ggplot(dados, aes(x = Tempo, y = Sangue)) + 
+  geom_point(color = "darkred", size = 2) + 
+  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed") + 
+  labs(
+    title = "Quantidade de C02 no Sangue vs Tempo de Serviço",
+    x = "Tempo de Serviço", y = "Quantidade de CO2 no Sangue"
+  ) + theme_minimal() + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+```
+
+
+**b.** A partir das informações amostrais e com nível de significância de 0,05, há uma relação linear entre a quantidade de dióxido de carbono e o tempo de serviço? 
+
+Tomemos as seguintes hipóteses:
+$$
+\begin{cases}
+H_0: \rho = 0, \,\,\text{Não há relação linear entre as duas variáveis} ,\\ 
+H_1: \rho \neq 0, \,\,\text{Há relação linear entre as duas variáveis}.
+\end{cases} \,\,\, \text{com} \,\,\, \alpha = 0.05
+$$
+```{r}
+teste_cor <- cor.test(dados$Tempo, dados$Sangue, method = "pearson")
+teste_cor
+```
+**Conclusão.** Como o p-valor < 0.05, rejeita-se $H_0$. Logo, conclui-se que existe uma relação linear positiva forte e estatisticamente significativa entre o tempo de serviço e a quantidade de $CO_2$ no sangue dos trabalhadores. 
+
+**c.** Ajuste uma regressão linear simples para a relação entre as duas variáveis do estudo. 
+```{r}
+# Modelo de Regressão linear
+modelo <- lm(Sangue ~ Tempo, data = dados)
+summary(modelo)
+
+# Tabela ANOVa da regressão
+anova(modelo)
+
+```
+
+**d.** Verifique se os coeficientes são diferentes de zero, com nível de significância de 0,05. Determine o intervalo de confiança de 95% para os coeficientes. Interprete os resultados. 
+$$
+\begin{cases}
+H_0: \beta_i = 0,\\ 
+H_1: \beta_i \neq 0.
+\end{cases}
+$$
+```{r}
+# Resumo Estatístico dos coeficientes
+summary(modelo)
+
+# Intervalo de confiança de 95% para os coeficientes
+confint(modelo, level = 0.95)
+```
+
+**Conclusão.** Para ambos os coeficientes, os p-valor são inferiores a 0,05, indicando que são estatisticamente diferentes de zero. O intercepto $(22,99)$ representa a quantidade esperada de $CO_{2}$ no sangue para um trabalhador com tempo de serviço igual a zero. O coeficiente angular $(0,0398)$ indica que, para cada unidade adicional de tempo de serviço, a quantidade esperada de $CO_{2}$ no sangue aumenta, em média, $0,0398$ unidade. Como o intervalo de confiança de 95% para o coeficiente angular $[0,0365; 0,0430]$ não contém zero, há evidências de uma associação linear positiva estatisticamente significativa entre as variáveis.
+
+**e.** Realize a análise de resíduos para avaliar as suposições do teste utilizado no item anterior. 
+```{r}
+
+# Verificando a Normalidade dos residuos
+normalidade <- shapiro.test(residuals(modelo))
+normalidade
+
+# Homocedasticidade (Breusch-Pagan)
+bptest(modelo)
+
+# Independência dos Erros (Durbin-Watson)
+dwtest(modelo)
+
+# Gráfico de diagnóstico dos resíduos 
+dados_diag <- data.frame(
+  Ajustados = fitted(modelo),
+  Residuos = residuals(modelo),
+  Residuos_Padronizados = rstandard(modelo),
+  Alavancagem = hatvalues(modelo),
+  Cooks_D = cooks.distance(modelo))
+
+# Resíduos vs Valores Ajustados
+p1 <- ggplot(dados_diag, aes(x = Ajustados, y = Residuos)) +
+  geom_point(color = "steelblue") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+  geom_smooth(method = "loess", color = "darkred", se = FALSE) +
+  labs(title = "Resíduos vs Ajustados", x = "Valores Ajustados", y = "Resíduos") +
+  theme_minimal() + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Q-Q Plot Normal
+p2 <- ggplot(dados_diag, aes(sample = Residuos_Padronizados)) +
+  stat_qq(color = "steelblue") +
+  stat_qq_line(color = "darkred", linetype = "dashed") +
+  labs(title = "Normal Q-Q", x = "Quantis Teóricos", 
+       y = "Resíduos Padronizados") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Scale-Location (Sqrt dos Residuos Padronizados)
+p3 <- ggplot(dados_diag, aes(x = Ajustados, y = sqrt(abs(Residuos_Padronizados)))) +
+  geom_point(color = "steelblue") +
+  geom_smooth(method = "loess", color = "darkred", se = FALSE) +
+  labs(title = "Escala-localização", x = "Valores Ajustados", 
+       y = expression(sqrt("|Resíduos Padronizados|"))) +
+  theme_minimal() + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+  
+# Resíduos Padronizados vs Alavancagem (Leverage)
+p4 <- ggplot(dados_diag, aes(x = Alavancagem, y = Residuos_Padronizados)) +
+  geom_point(color = "steelblue") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+  geom_smooth(method = "loess", color = "darkred", se = FALSE) +
+  labs(title = "Resíduos vs Leverage", x = "Leverage", y = "Resíduos Padronizados") +
+  theme_minimal() + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Unindo os 4 gráficos 
+(p1 + p2) / (p3 + p4)
+
+```
+**Conclusão.** Com base nos testes de Shapiro-Wilk, Breusch-Pagan e Durbin-Watson, considerando o nível de significância de 0,05, não foram encontradas evidências estatisticamente significativas de desvios da normalidade, heterocedasticidade ou autocorrelação de primeira ordem dos resíduos. Em conjunto com a inspeção dos gráficos diagnósticos, esses resultados não indicam violações importantes das suposições avaliadas do modelo de regressão linear.  
+
+**2.** Uma pesquisa avaliou pacientes com câncer em um grande hospital. Utilizando as informações de uma amostra de pacientes sobre o estadiamento da doença e o tempo de sobrevida, em meses, determine:
+
+**a.** O gráfico de dispersão entre as duas variáveis do estudo.
+```{r}
+# Dados da tabela 2
+dados2 <- read_excel("~/Documentos/Disciplinas/Análise no R/Aula 8/DadosR.xlsx", 
+    sheet = "AtividadeEx2")
+
+# Renomeando a variável tempo de sobrevida
+names(dados2)[2] <- "Tempo"
+
+# Garantir a ordem correta dos níveis do Estadiamento
+dados2$Estadiamento <- factor(dados2$Estadiamento, levels = c("I", "II", "III", "IV"))
+
+# Gráfico de dispersão com jitter 
+ggplot(dados2, aes(x = Estadiamento, y = Tempo, fill = Estadiamento)) +
+  geom_boxplot(alpha = 0.6, outlier.shape = NA, width = 0.5, color = "black") +
+  geom_jitter(width = 0.15, alpha = 0.6, color = "gray10", size = 2) +
+  scale_fill_brewer(palette = "Dark2") +
+  theme_minimal(base_size = 12) +
+  labs(
+    title = "Estadiamento do Câncer e Tempo de Sobrevida",
+    x = "Estadiamento da doença",
+    y = "Tempo de Sobrevida (meses)"
+  ) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    panel.grid.minor = element_blank()
+  )
+```
+**Conclusão.** Observa-se, pelo gráfico, uma tendência de redução do tempo de sobrevida dos pacientes conforme o avanço do estadiamento da doença. Os pacientes classificados nos estágios iniciais tendem a apresentar maiores tempos de sobrevida, enquanto aqueles em estágios mais avançados apresentam menores tempos.
+
+
+**b.** Se há uma relação entre as duas variáveis, com nível de significância de 0,05.
+
+Podemos realizar de duas formas. A primeira é pela Análise de Variância (ANOVA). Logo, para esse caso, as hipóteses que queremos testar: 
+$$
+\begin{cases}
+H_0: \mu_{I} = \mu_{II} = \mu_{III} = \mu_{IV},\\ 
+H_1: \text{pelo menos uma das médias é diferente.}
+\end{cases} \,\,\, \text{com} \,\,\, \alpha = 0.05
+$$
+
+```{r}
+# Modelo de ANOVA
+modelo_anova <- aov(Tempo ~ Estadiamento, data = dados2)
+summary(modelo_anova)
+
+# Teste de normalidade
+shapiro.test(residuals(modelo_anova))
+
+# Homogeneidade das variâncias 
+leveneTest(Tempo ~ Estadiamento, data = dados2)
+```
+**Conclusão.** Como o p-valor obtido pela ANOVA é inferior a 0,05, rejeita-se a hipótese nula de igualdade das médias. Portanto, há evidências estatisticamente significativas de que o tempo médio de sobrevida difere entre pelo menos dois estágios do câncer.
+
+
+Uma segunda abordagem pode ser realizada utilizando a Correlação de Spearman. As hipóteses são 
+$$
+\begin{cases}
+H_0: \rho_s = 0,\\ 
+H_1: \rho_s \neq 0 
+\end{cases}
+\,\,\, \text{com} \,\,\, \alpha = 0.05
+$$
+
+
+```{r}
+# Criando variável numérica 
+dados2$Estadiamento_num <- as.numeric(dados2$Estadiamento)
+
+# Correlação de Spearman
+teste_spearman <- cor.test(dados2$Estadiamento_num,dados2$Tempo,method = "spearman",exact = FALSE)
+teste_spearman
+```
+**Conclusão.** Como os p-valor são inferiores a 0,05 em ambos os testes, rejeitam-se as respectivas hipóteses nulas. Portanto, há evidências de uma associação estatisticamente significativa entre o estadiamento do câncer e o tempo de sobrevida dos pacientes. Além disso, a correlação negativa forte (\(\rho_s=-0,7891\)) indica que estágios mais avançados da doença tendem a estar associados a menores tempos de sobrevida.
+
+
+
+
+
+
+

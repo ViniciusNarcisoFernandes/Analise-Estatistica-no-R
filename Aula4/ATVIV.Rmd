@@ -1,0 +1,177 @@
+---
+title: "Atividade IV"
+author: "Vinícius Narciso Fernandes"
+date: "28/08/2026"
+output: pdf_document
+---
+
+**1.** Um experimento avaliou o desempenho de uma pomada medicinal natural para o tratamento de feridas dermatológicas.
+
+**a)** Calcule o intervalo de confiança de 95% para a idade média dos pacientes deste estudo.
+
+```{r}
+library(readxl)
+dados1 <- read_excel("~/Documentos/Disciplinas/Análise no R/Aula 4/ExemplosIC.xlsx",
+                     sheet = "Atividade_Ex1")
+
+media <- mean(dados1$Idade)
+dp <- sd(dados1$Idade)
+n <- length(dados1$Idade)
+
+q975 <- qt(0.975, df=n-1) 
+
+inf <- media - q975 * dp / sqrt(n)
+sup <- media + q975 * dp / sqrt(n) 
+
+cat(" #---------------------------------------------------\n",
+    "#              Resultados obtidos                    \n",
+    "#----------------------------------------------------\n",
+    "Média amostral =", media,"\n",
+    "Desvio-padrão amostral =", dp,"\n",
+    "Tamanho amostral  =", n,"\n",
+    "Quantil t(0,975) =", round(q975, 3),"\n",
+    "Intervalo de Confiança de 95% = [",round(inf, 3), ",", round(sup, 3), "]\n",
+    "#-----------------------------------------------------\n"
+    )
+
+```
+**Interpretação:** Com 95% de confiança, estima-se que a idade média dos pacientes da população estudada esteja entre 49,19 e 50,33 anos.
+
+**b)** Apresente um intervalo de confiança de 95% para a proporção de resultado positivo deste tratamento e verifique se a eficácia é superior a 80%.
+```{r}
+n <- length(dados1$Resultado)
+k <- sum(dados1$Resultado == "Positivo")  
+prop.est <- k/n
+
+q975 <- qnorm(0.975)
+
+
+prop_inf <- prop.est - q975 * sqrt(prop.est *(1-prop.est)/n)
+prop_sup <-prop.est + q975 * sqrt(prop.est *(1-prop.est)/n)
+
+# Proporção do teste
+#prop.test(x = k,n = n,p = 0.80,alternative = "greater",correct = FALSE)
+
+cat(
+  "#----------------------------------------------------\n",
+  "#              Resultados obtidos                    \n",
+  "#----------------------------------------------------\n",
+  "Tamanho amostral (n) =", n, "\n",
+  "Número de resultados positivos (k) =", k, "\n",
+  "Proporção amostral  =", round(prop.est, 4), "\n",
+  "Quantil da normal =", round(q975, 4), "\n",
+  "Limite inferior =", round(prop_inf, 4), "\n",
+  "Limite superior =", round(prop_sup, 4), "\n",
+  "IC de 95% para a proporção = [",
+  round(prop_inf, 4), ", ", round(prop_sup, 4), "]\n",
+  "IC de 95% em porcentagem = [",
+  round(100 * prop_inf, 2), "%, ",
+  round(100 * prop_sup, 2), "%]\n",
+  "#-----------------------------------------------------\n"
+)
+
+```
+**Interpretação:** Com 95% de confiança, a proporção de resultados positivos do tratamento está entre 0,904 e 0,959, ou seja, entre 90,4% e 95,9%. Como todo o intervalo de confiança está acima de 0,80 (80%), há evidências de que a proporção populacional de resultados positivos seja superior a 80%. Portanto, o objetivo de verificar uma eficácia superior a 80% é atendido.
+
+
+**2.** Um levantamento deseja estudar as características de morcegos de uma região com o objetivo de verificar se o peso médio é superior a 100 gramas. A partir da amostra dos morcegos, calcule o intervalo de confiança de 95% para o peso médio dos morcegos e verifique o objetivo do estudo.
+```{r}
+library(readxl)
+dados2 <- read_excel("~/Documentos/Disciplinas/Análise no R/Aula 4/ExemplosIC.xlsx", sheet = "Atividade_Ex2e3")
+
+media <- mean(dados2$peso) 
+dp <- sd(dados2$peso)
+n <- length(dados2$peso) 
+q975 <- qt(0.975, df=n-1) 
+inf <- media - q975 * dp / sqrt(n) 
+sup <- media + q975 * dp / sqrt(n)
+
+
+
+
+cat(" #----------------------------------------------------------\n",
+    "#                 Resultados obtidos                       \n",
+    "#----------------------------------------------------------\n",
+    "Média amostral =", media,"\n",
+    "Desvio-padrão amostral =", dp,"\n",
+    "Tamanho amostral  =", n,"\n",
+    "Quantil t(0,975) =", round(q975, 3), "\n",
+    "Limite Inferior =", inf,"\n",
+    "Limite Superior =", sup,"\n",
+    "Intervalo de Confiança de 95 % = [",round(inf, 3), ",",    round(sup, 3),"]\n",
+    "#----------------------------------------------------------\n"
+    )
+
+
+```
+**Interpretação:** Com 95% de confiança, o peso médio dos morcegos está entre 110,81 e 116,95 gramas. Como todo o intervalo de confiança está acima de 100 gramas, há evidências de que o peso médio dos morcegos é superior a 100 gramas. Portanto, o objetivo do estudo é atendido.
+
+**3.** Utilizando os dados do exercício anterior, compare a variância do peso dos morcegos insetívoros e hematófagos por meio de intervalo de confiança. Com este resultado, calcule o intervalo de confiança de 95% da diferença dos pesos médios entre os insetívoros e hematófagos.
+
+```{r}
+dados2 <- read_excel("~/Documentos/Disciplinas/Análise no R/Aula 4/ExemplosIC.xlsx", sheet = "Atividade_Ex2e3")
+
+n1 <- sum(dados2$alimentacao == "Insentivoro")
+n2 <- sum(dados2$alimentacao == "Hematofago")
+
+media1 <- mean(dados2$peso[dados2$alimentacao == "Insentivoro"])
+media2 <- mean(dados2$peso[dados2$alimentacao == "Hematofago"])
+
+var1 <- var(dados2$peso[dados2$alimentacao == "Insentivoro"])
+var2 <- var(dados2$peso[dados2$alimentacao == "Hematofago"])
+
+q25 <- qf(0.025, df1 = n1-1, df2 = n2 - 1)
+q975 <- qf(0.975, df1 = n1-1, df2 = n2 - 1)
+
+ic_var_inf <- var1 / (q975 * var2)
+ic_var_sup <- var1 / (q25 * var2)
+
+
+cat(" #-------------------------------------------------------\n",
+    "#                  Resultados obtidos                    \n",
+    "#-------------------------------------------------------\n",
+    "Tamanho amostral (Insentivoro) =", n1,"\n",
+    "Tamanho amostral (Hematofago) =", n2,"\n",
+    "Média amostral (Insentivoro) =", media1,"\n",
+    "Média amostral (Hematofago) =", media2,"\n",
+    "Variância amostral (Insentivoro) =", var1,"\n",
+    "Variância amostral (Hematofago) =", var2,"\n",
+    "Razão das variâncias =", var1/var2,"\n",
+    "Limite Superior =",ic_var_inf,"\n",
+    "Limite Inferior =",ic_var_sup,"\n",
+    "IC de 95% da razão das variâncias = [",
+  round(ic_var_inf, 3), ", ", round(ic_var_sup, 3), "]\n",
+    "#------------------------------------------------------\n"
+    )
+```
+
+**Interpretação:** Com 95% de confiança, a razão entre as variâncias dos pesos dos morcegos insetívoros e hematófagos está entre 0,27 e 3,23. Como o valor 1 pertence ao intervalo de confiança, não há evidências suficientes, ao nível de significância de 5%, para concluir que as variâncias dos dois grupos sejam diferentes. Portanto, podemos considerar a hipótese de variâncias iguais para o cálculo do intervalo da diferença entre as médias.
+
+
+```{r}
+# Diferença dos pesos médios entre os insetívoros e hematófagos
+varpond <- ((n1 - 1) * var1 + (n2 - 1) * var2) / (n1 + n2 - 2)
+
+EP <- sqrt((1/n1 + 1/n2) * varpond) 
+
+q975 <- qt(0.975, df = n1 + n2 -2)
+
+inf <- media1 - media2 - q975 * EP 
+sup <- media1 - media2 + q975 * EP 
+
+cat(" #----------------------------------------------------------#\n",
+    "#                    Resultados obtidos                     #\n",
+    "#------------------------------------------------------------#\n",
+    "Variância Ponderada =", varpond, "\n",
+    "Erro-padrão =", EP, "\n",
+    "Quantil da distribuição t de Student =", q975, "\n",
+    "Limite Inferior =", inf, "\n",
+    "Limite Superior =", sup, "\n",
+    "Intervalo de Confiança de 95% = [",
+        round(inf, 3), ",", round(sup, 3), "]\n",
+    "#-------------------------------------------------------#\n"
+)
+
+```
+
+**Interpretação:** Com 95% de confiança, a diferença entre os pesos médios dos morcegos insetívoros e hematófagos, considerando a diferença, está entre −16,13 g e −8,24 g. Como todo o intervalo é negativo, os resultados indicam que o peso médio dos morcegos insetívoros é menor que o dos hematófagos. Em termos de magnitude, o peso médio dos insetívoros é estimado como aproximadamente 8,24 a 16,13 g menor que o dos hematófagos.
